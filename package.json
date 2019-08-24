@@ -1,0 +1,11 @@
+{
+  "name": "pmo-helper",
+  "version": "1.0.0",
+  "description": "Automation helper tool for JIRA in BK",
+  "packages": "packages/**",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Liu Jing",
+  "license": "MIT"
+}
