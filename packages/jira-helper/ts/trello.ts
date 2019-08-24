@@ -5,4 +5,5 @@ export interface TrelloBoard {
 
 export interface TrelloCard {
   title: string;
+  shortId: string;
 }
