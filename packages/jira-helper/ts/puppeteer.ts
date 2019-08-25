@@ -6,7 +6,7 @@ import {mergeMap, map, reduce} from 'rxjs/operators';
 import * as jsYaml from 'js-yaml';
 const log = require('log4js').getLogger('jira-helper');
 import Path from 'path';
-
+import api from '__api';
 
 // import os from 'os';
 export async function login() {
@@ -16,9 +16,8 @@ export async function login() {
     {timeout: 0, waitUntil: 'domcontentloaded'});
 }
 
-async function launch(headless = false) {
+async function launch(headless = false): Promise<pup.Browser> {
   let executablePath: string;
-  // let userDataDir: string;
 
   switch (process.platform) {
     // Refer to https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md#Mac-OS-X
@@ -30,8 +29,13 @@ async function launch(headless = false) {
       process.env['ProgramFiles(x86)'] || 'c:/Program Files (x86)', 'Google/Chrome/Application/chrome.exe');
       break;
     default:
-      console.log('jira-helper does not support this platform', process.platform);
-    // process.exit(1);
+      const msg = 'jira-helper does not support this platform ' + process.platform;
+      log.error(msg);
+      throw new Error(msg);
+  }
+  if (headless && api.argv.noHeadless) {
+    log.info('Disable headless mode');
+    headless = false;
   }
   const browser = await pup.launch({
     headless,
@@ -45,6 +49,7 @@ async function launch(headless = false) {
 
 export async function run() {
   const browser = await launch(true);
+
   const pages = await browser.pages();
   // const page = await browser.newPage();
   // tslint:disable-next-line: max-line-length
@@ -100,5 +105,7 @@ async function listBoards(page: pup.Page): Promise<tr.TrelloBoard[]> {
   ).toPromise();
 }
 
-
+export function main() {
+  console.log(api.argv);
+}
 
