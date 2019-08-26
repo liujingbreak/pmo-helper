@@ -8,7 +8,7 @@ Login from opened Browser.
 
 2. Sync up
 ```bash
-drcp run ts/puppeteer.ts#run jira-helper [--no-headless]
+drcp run ts/puppeteer.ts#listTrello jira-helper [--headless]
 ```
 
 <!-- ### Puppeteer

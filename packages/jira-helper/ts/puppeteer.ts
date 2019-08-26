@@ -3,7 +3,7 @@ import {from, forkJoin, Observable} from 'rxjs';
 import pup from 'puppeteer-core';
 import * as tr from './trello';
 // import * as jira from './jira';
-import {Issue, columnsToIssue} from './jira';
+import {Issue} from './jira';
 import {mergeMap, map, reduce} from 'rxjs/operators';
 import * as jsYaml from 'js-yaml';
 const log = require('log4js').getLogger('jira-helper');
@@ -51,7 +51,7 @@ async function launch(headless = false): Promise<pup.Browser> {
   return browser;
 }
 
-export async function run() {
+export async function listTrello() {
   const browser = await launch(false);
 
   const pages = await browser.pages();
@@ -102,8 +102,8 @@ async function listBoards(page: pup.Page): Promise<tr.TrelloBoard[]> {
       );
     }),
     map(([name, cards]) => {
-      log.info(` [ ${name} ] `);
-      log.info(cards.map(card => `  - ${card.shortId}: ${card.title}`).join('\n'));
+      // log.info(` [ ${name} ] `);
+      // log.info(cards.map(card => `  - ${card.shortId}: ${card.title}`).join('\n'));
       return {name, cards} as tr.TrelloBoard;
     }),
     reduce<tr.TrelloBoard>((boards, bd) => {
@@ -135,17 +135,33 @@ export async function listJira(
   console.log('fetching page done');
   const page = pages[0];
 
-  const table = await page.$('#issuetable > tbody');
+  const rows = await page.$$('#issuetable > tbody > tr');
 
-  const keys = await table!.$$('tr');
   const issues = await Promise.all(
-    keys.map(async row => {
-      const issue = await row.getProperty('innerText').then(v => v.jsonValue())
-        .then((str: string) => str.split(/\s+/))
-        .then(cols => columnsToIssue(...cols));
+    rows.map(async row => {
+      const clsMap = await row.$$eval(':scope > td', els => {
+        const colMap: {[k: string]: string} = {};
+        els.forEach(el => {
+          colMap[el.className] = (el as HTMLElement).innerText;
+        });
+        return colMap;
+      });
+      // log.info(clsMap);
+      for (const key of Object.keys(clsMap)) {
+        clsMap[key] = clsMap[key].trimLeft().split(/[\n\r]+/)[0];
+      }
+      const issue: Issue = {
+        name: clsMap.summary,
+        ver: clsMap.fixVersions,
+        status: clsMap.status,
+        assignee: clsMap.assignee,
+        id: clsMap.issuekey
+      };
       return issue;
     })
   );
+
+  log.info(issues);
 
   for (const issue of issues) {
     await page.$$eval('a.issue-link', (els, issue) => {
@@ -160,7 +176,7 @@ export async function listJira(
     await page.waitFor(300);
     // await page.waitForNavigation({waitUntil: 'networkidle0'});
     // await page.goto('https://issue.bkjk-inc.com/browse/' + issue.id, {timeout: 0, waitUntil: 'networkidle2'});
-    issue.tasks = await listSubtasks(page, issue.id);
+    issue.tasks = await listSubtasks(page, issue);
     await page.goBack({waitUntil: 'networkidle0'});
   }
   log.info(jsYaml.safeDump(issues));
@@ -185,7 +201,7 @@ export async function syncJira() {
     if (tasksWithoutId.length === 0)
       continue;
 
-    const remoteTasks = await listSubtasks(pages[0], issue.id);
+    const remoteTasks = await listSubtasks(pages[0], issue);
     issue.ver = await pages[0].$('#fixfor-val').then(el => el!.getProperty('innerText')).then(jh => jh.jsonValue());
 
     const toAdd = _.differenceBy(tasksWithoutId, remoteTasks, issue => issue.name);
@@ -196,14 +212,6 @@ export async function syncJira() {
     }
   }
   browser.close();
-}
-
-export async function issueDetail() {
-  const browser = await launch(false);
-  const pages = await browser.pages();
-  const tasks = await listSubtasks(pages[0], 'BYJ-2141');
-  log.info(tasks);
-  await browser.close();
 }
 
 async function addSubTask(page: pup.Page, task: Issue) {
@@ -279,20 +287,19 @@ async function addSubTask(page: pup.Page, task: Issue) {
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
-async function listSubtasks(page: pup.Page, issueId: string) {
+async function listSubtasks(page: pup.Page, {ver}: {ver: string}) {
   // await page.goto('https://issue.bkjk-inc.com/browse/' + issueId, {timeout: 0, waitUntil: 'networkidle2'});
   const tasks = await page.$$eval('#view-subtasks #issuetable > tbody > tr', (els) => {
     // return els.length;
     return els.map(el => {
-      const name: HTMLElement | null = el.querySelector('.stsummary');
+      const name: HTMLElement | null = el.querySelector(':scope > .stsummary > a');
       const subtask: Issue = {
+        name: name ? name.innerText.trim() : '',
         id: el.getAttribute('data-issuekey')!,
-        name: name ? name.innerText : '',
-        // state: '',
-        state: (el.querySelector('.status') as HTMLElement).innerText,
-        ver: '',
+        status: (el.querySelector('.status') as HTMLElement).innerText.trim(),
+        ver,
         // assignee: ''
-        assignee: (el.querySelector('.assignee') as HTMLElement).innerText
+        assignee: (el.querySelector('.assignee') as HTMLElement).innerText.trim()
       };
       return subtask;
     });
