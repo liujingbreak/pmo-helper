@@ -1,248 +1,237 @@
-- id: BYJ-2141
-  state: 开放
-  name: FE
-  ver: '-'
-  assignee: 前端非功能性需求开发
+- name: FE - 前端非功能性需求开发
+  ver: 贝用金v1.9/910
+  status: DEVELOPING
+  assignee: 刘晶
+  id: BYJ-2141
   tasks:
-    - id: BYJ-2142
-      name: FE - 需求评估
-      state: 开放
-      ver: ''
-      assignee: 未分配
-    - id: BYJ-1975
-      name: GIO - 帮助页点击条目行为的圈选无法区分，需要开发定制
-      state: 开放
-      ver: ''
+    - name: FE - 需求评估
+      id: BYJ-2142
+      status: TESTING
+      ver: 贝用金v1.9/910
+      assignee: 刘晶
+    - name: GIO - 帮助页点击条目行为的圈选无法区分，需要开发定制
+      id: BYJ-1975
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 刘晶
     - name: FE - 贝分期贝用金项目介绍(1d)
+      id: BYJ-2174
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 刘晶
-
-- id: BYJ-2111
-  state: 开放
-  name: 管理后台日常优化
+    - name: FE - 自动脚本用于批量创建JIRA
+      id: BYJ-2205
+      status: DEVELOPING
+      ver: 贝用金v1.9/910
+      assignee: 刘晶
+- name: 协议支付失败内容包装
   ver: 贝用金v1.9/910
+  status: 开放
   assignee: 顾晓彬
-  tasks: []
-- id: BYJ-2110
-  state: 开放
-  name: 管理后台支持维护借款人个人信息
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks: []
-- id: BYJ-2109
-  state: 开放
-  name: 优化离职处理能力
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
+  id: BYJ-2107
   tasks:
-    - id: BYJ-2165
-      name: 快速筛选支持离职筛选
-      state: 开放
-      ver: ''
-      assignee: 陈流喜
-- id: BYJ-2108
-  state: 开放
-  name: 用户端日常优化
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks: []
-- id: BYJ-2107
-  state: 开放
-  name: 协议支付失败内容包装
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks:
-    - id: BYJ-2164
-      name: 协议支付失败内容包装
-      state: 开放
-      ver: ''
+    - name: 协议支付失败内容包装
+      id: BYJ-2164
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 匡荣
-    - name: 弹框开发(0.5d)
+    - name: FE - 弹框开发(0.5d)
+      id: BYJ-2185
+      status: DEVELOPING
+      ver: 贝用金v1.9/910
       assignee: 余力
-    
-- id: BYJ-2106
-  state: 开放
-  name: 代扣失败天玑错误包装
+- name: 代扣失败天玑错误包装
   ver: 贝用金v1.9/910
+  status: 开放
   assignee: 顾晓彬
+  id: BYJ-2106
   tasks:
-    - id: BYJ-2163
-      name: 天玑错误码包装
-      state: 开放
-      ver: ''
+    - name: 天玑错误码包装
+      id: BYJ-2163
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 储昭竹
-- id: BYJ-2105
-  state: 开放
-  name: 与钱包UED统一设计风格
+- name: 与钱包UED统一设计风格
   ver: 贝用金v1.9/910
+  status: 开放
   assignee: 顾晓彬
+  id: BYJ-2105
   tasks:
-    - name: 讨论可行性 （0.5d）
-    - name: 页面加载动效与c端保持一致； (0.5d)
-    - name: 首页“去借钱”按钮动效修改；（0.5d
-    - name: 所有按钮中文字应为16px；(0.5d)
-    - name: 开发样式规则工具确保变量正确使用(1.5d）
-    - name: 界面蓝色改为经纪人钱包中的蓝色#0984F9；(0.5d）
-      assignee: 张翔
-    - name: 银行卡视觉上修改，与钱包端的银行卡保持一致；(2d)
-      assignee: 余力
-    - name: 底部弹窗样式适配问题；（1.5d）
-      assignee: 余力
-    - name: 人脸识别页面强调性文字修改颜色(1.5d)
-      assignee: 邹学
-    - name: 确认签约⻚面手机验证码样式统一, toast文字统一 (1.5d)
-      assignee: 余力
-    - name: 首⻚提示样式参照钱包样式修改(1d)
-      assignee: 余力
-    - name: 非输入框，⻓按拷⻉功能没有禁掉。(0.5)
+    - name: FE - 讨论可行性 （0.5d）
+      id: BYJ-2186
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 刘晶
-
-- id: BYJ-2104
-  state: 开放
-  name: 信用额度页突出还款入口
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks:
-    - name: API联调 (0.5d)
+    - name: FE - 页面加载动效与c端保持一致； (0.5d)
+      id: BYJ-2187
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 刘晶
+    - name: FE - 首页“去借钱”按钮动效修改；（0.5d
+      id: BYJ-2188
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 刘晶
+    - name: FE - 所有按钮中文字应为16px；(0.5d)
+      id: BYJ-2189
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 刘晶
+    - name: FE - 开发样式规则工具确保变量正确使用(1.5d）
+      id: BYJ-2190
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 刘晶
+    - name: 'FE - 界面蓝色改为经纪人钱包中的蓝色#0984F9；(0.5d）'
+      id: BYJ-2191
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 张翔
-    - name: 按钮和个状态提示UI显示逻辑开发(2d)
-      assignee: 张翔
-- id: BYJ-2103
-  state: 开放
-  name: 链家/德祐/贝壳宣布提前到期
+    - name: FE - 银行卡视觉上修改，与钱包端的银行卡保持一致；(2d)
+      id: BYJ-2192
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 余力
+    - name: FE - 底部弹窗样式适配问题；（1.5d）
+      id: BYJ-2193
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 余力
+    - name: FE - 人脸识别页面强调性文字修改颜色(1.5d)
+      id: BYJ-2194
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 邹学
+    - name: 'FE - 确认签约⻚面手机验证码样式统一, toast文字统一 (1.5d)'
+      id: BYJ-2195
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 余力
+    - name: FE - 首⻚提示样式参照钱包样式修改(1d)
+      id: BYJ-2196
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 余力
+    - name: FE - 非输入框，⻓按拷⻉功能没有禁掉。(0.5)
+      id: BYJ-2197
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 刘晶
+- name: 信用额度页突出还款入口
   ver: 贝用金v1.9/910
+  status: 开放
   assignee: 顾晓彬
+  id: BYJ-2104
   tasks:
-    - id: BYJ-2162
-      name: 贝壳的合同文本修改
-      state: 开放
-      ver: ''
+    - name: FE - API联调 (0.5d)
+      id: BYJ-2198
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 张翔
+    - name: FE - 按钮和个状态提示UI显示逻辑开发(2d)
+      id: BYJ-2199
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 张翔
+- name: 链家/德祐/贝壳宣布提前到期
+  ver: 贝用金v1.9/910
+  status: 开放
+  assignee: 顾晓彬
+  id: BYJ-2103
+  tasks:
+    - name: 贝壳的合同文本修改
+      id: BYJ-2162
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 储昭竹
-- id: BYJ-2102
-  state: 开放
-  name: 语音验证码
+    - name: FE - 贝壳的合同文本修改
+      ver: 贝用金v1.9/910
+      assignee: 余力
+- name: 语音验证码
   ver: 贝用金v1.9/910
+  status: 开放
   assignee: 顾晓彬
+  id: BYJ-2102
   tasks:
-    - id: BYJ-2123
-      name: BE 语音短信接口验证
-      state: 已关闭
-      ver: ''
+    - name: BE 语音短信接口验证
+      id: BYJ-2123
+      status: 已关闭
+      ver: 贝用金v1.9/910
       assignee: 顾晓彬
-    - id: BYJ-2161
-      name: 签约新增语音验证码
-      state: 开放
-      ver: ''
+    - name: 签约新增语音验证码
+      id: BYJ-2161
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 谢铭
     - name: FE - API 联调 (0.5d)
+      id: BYJ-2176
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 余力
     - name: FE - API成功后 toast提示用户“稍后将电话通知您验证码，请注意接听”(0)
+      id: BYJ-2178
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 余力
-    - name: 当短信验证码在倒计时内点击【语音验证码】，则在语音验证码下方提示
-      desc: 倒计时内不可点击？当短信验证码在倒计时内点击【语音验证码】，则在语音验证码下方提示“请在短信验证码倒计时结束后确认无法收到短信再使用语音验证码”
+    - name: FE - 当短信验证码在倒计时内点击【语音验证码】，则在语音验证码下方提示
+      id: BYJ-2179
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 余力
-    - name: "Question: 语音是不是也有倒计时限制次数?"
+    - name: 'FE - Question: 语音是不是也有倒计时限制次数?'
+      id: BYJ-2180
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 余力
-
-- id: BYJ-2070
-  state: DEVELOPING
-  name: 还款入口调整
+    - name: FE - 当短信验证码在倒计时内点击【语音验证码】，则在语音验证码下方提示
+      id: BYJ-2200
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 余力
+    - name: 'FE - Question: 语音是不是也有倒计时限制次数?'
+      id: BYJ-2201
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 余力
+- name: 重构优化
   ver: 贝用金v1.9/910
-  assignee: 王韬
-  tasks: []
-- id: BYJ-2050
-  state: DEVELOPING
-  name: 天玑代扣错误码匹配
-  ver: 贝用金v1.9/910
-  assignee: 苏鹭燕
-  tasks: []
-- id: BYJ-2018
-  state: DEVELOPING
-  name: 日常优化
-  ver: 贝用金v1.9/910
-  assignee: 王韬
-  tasks: []
-- id: BYJ-2017
-  state: DEVELOPING
-  name: 离职还款入口短信
-  ver: 贝用金v1.9/910
-  assignee: 王韬
-  tasks: []
-- id: BYJ-1899
-  state: DEVELOPING
-  name: 管理后台优化
-  ver: 贝用金v1.9/910
-  assignee: 王韬
-  tasks: []
-- id: BYJ-1867
-  state: DEVELOPING
-  name: 语音验证码
-  ver: 贝用金v1.9/910
-  assignee: 王韬
-  tasks: []
-- id: BYJ-1829
-  state: 开放
-  name: 重构优化
-  ver: 贝用金v1.9/910
+  status: 开放
   assignee: 顾晓彬
+  id: BYJ-1829
   tasks:
-    - id: BYJ-1540
-      name: BE 中台先通知放款成功后又通知放款退票
-      state: CANCELLED
-      ver: ''
+    - name: BE 中台先通知放款成功后又通知放款退票
+      id: BYJ-1540
+      status: CANCELLED
+      ver: 贝用金v1.9/910
       assignee: 储昭竹
-    - id: BYJ-1032
-      name: loanservice优化流程，并支持任务的串行/并行/重试
-      state: CANCELLED
-      ver: ''
+    - name: loanservice优化流程，并支持任务的串行/并行/重试
+      id: BYJ-1032
+      status: CANCELLED
+      ver: 贝用金v1.9/910
       assignee: 储昭竹
-- id: BYJ-1792
-  state: 开放
-  name: 公告权限控制说明
+- name: 提前宣布到期
   ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks: []
-- id: BYJ-1791
-  state: 开放
-  name: 公告查询
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks: []
-- id: BYJ-1790
-  state: 开放
-  name: 公告管理详情
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks:
-    - id: BYJ-1932
-      name: 【测试任务】管理后台公告管理测试用例设计
-      state: 已关闭
-      ver: ''
-      assignee: 俞琴
-    - id: BYJ-1935
-      name: 需求分析和基础架构，数据库结构提交
-      state: 开放
-      ver: ''
-      assignee: 刘晶
-- id: BYJ-1789
-  state: 开放
-  name: 公告管理列表
-  ver: 贝用金v1.9/910
-  assignee: 顾晓彬
-  tasks: []
-- id: BYJ-1763
-  state: DEVELOPING
-  name: 提前宣布到期
-  ver: 贝用金v1.9/910
+  status: DEVELOPING
   assignee: 王韬
+  id: BYJ-1763
   tasks:
-    - name: API联调 (0.5d)
+    - name: FE - API联调 (0.5d)
+      id: BYJ-2181
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 张翔
-    - name: 前端页面已逾期账单按原有账单展示，未到期账单（实际上在提前到期当天已经逾期）所有账单合并计算并展示 （1d）
+    - name: FE - 前端页面已逾期账单按原有账单展示，未到期账单（实际上在提前到期当天已经逾期）所有账单合并计算并展示 （1d）
+      id: BYJ-2182
+      status: 开放
+      ver: 贝用金v1.9/910
       assignee: 张翔
-- id: BYJ-1209
-  state: 开放
-  name: BE
-  ver: 数据库敏感数据做加密
-  assignee: 贝用金v1.9/910
-  tasks: []
+    - name: FE - API联调 (0.5d)
+      id: BYJ-2202
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 张翔
+    - name: FE - 前端页面已逾期账单按原有账单展示，未到期账单（实际上在提前到期当天已经逾期）所有账单合并计算并展示 （1d）
+      id: BYJ-2203
+      status: 开放
+      ver: 贝用金v1.9/910
+      assignee: 张翔
