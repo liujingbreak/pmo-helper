@@ -64,20 +64,21 @@ export async function domToIssues(page: pup.Page) {
         const clsMap = await row.$$eval(':scope > td', els => {
           const colMap: {[k: string]: string} = {};
           els.forEach(el => {
-            colMap[el.className] = (el as HTMLElement).innerText.trim();
+            colMap[el.className] = (el as HTMLElement).innerText;
           });
           return colMap;
         });
         // log.info(clsMap);
+        const trimedMap: {[k: string]: string} = {};
         for (const key of Object.keys(clsMap)) {
-          clsMap[key] = clsMap[key].trimLeft().split(/[\n\r]+/)[0];
+          trimedMap[key.trimLeft().split(/[\n\r]+/)[0]] = clsMap[key].trim();
         }
         const issue: Issue = {
-          name: clsMap.summary,
-          ver: clsMap.fixVersions,
-          status: clsMap.status,
-          assignee: clsMap.assignee,
-          id: clsMap.issuekey
+          name: trimedMap.summary.replace(/[\n\r]+/g, ' '),
+          ver: trimedMap.fixVersions,
+          status: trimedMap.status,
+          assignee: trimedMap.assignee,
+          id: trimedMap.issuekey
         };
         return issue;
       })
