@@ -15,6 +15,7 @@ export interface Issue {
   ver: string;
   assignee: string;
   tasks?: Issue[];
+  parentId?: string;
 }
 
 export function columnsToIssue(...cols: string[]): Issue {
@@ -37,30 +38,31 @@ export async function loginJira() {
 // export await function waitForCondition()
 
 export async function domToIssues(page: pup.Page) {
-  const rows = await page.$$('#issuetable > tbody > tr');
   let issues: Issue[] = [];
   let pageIdx = 1;
   while (true) {
     console.log('Page', page.url());
-    issues = issues.concat(await fetchPage());
-    // await page.waitForSelector('.pagination > a.nav-next', {visible: true, timeout: 500});
+    const currPageIssues = await fetchPage();
+    issues = issues.concat(currPageIssues);
     const nextPageLink = await page.$('.pagination > a.nav-next');
     if (nextPageLink == null)
       break;
-    // const navWait = page.waitForNavigation({waitUntil: 'networkidle0'});
     await nextPageLink.click();
     console.log('Go page', ++pageIdx);
     // check first cell, wait for its DOM mutation
+
+    const lastFirstRowId = currPageIssues[0].id;
+
     await page.waitForFunction((originIssueId) => {
       const td: HTMLElement | null = document.querySelector('#issuetable > tbody > tr > td');
       return td && td.innerText.length > 0 && td.innerText.trim() !== originIssueId;
-    }, {polling: 'mutation'}, issues[0].id);
+    }, {polling: 'mutation'}, lastFirstRowId);
     await page.waitFor(500);
   }
 
   async function fetchPage() {
     return await Promise.all(
-      rows.map(async row => {
+      (await page.$$('#issuetable > tbody > tr')).map(async row => {
         const clsMap = await row.$$eval(':scope > td', els => {
           const colMap: {[k: string]: string} = {};
           els.forEach(el => {
@@ -68,18 +70,30 @@ export async function domToIssues(page: pup.Page) {
           });
           return colMap;
         });
+
         // log.info(clsMap);
         const trimedMap: {[k: string]: string} = {};
         for (const key of Object.keys(clsMap)) {
           trimedMap[key.trimLeft().split(/[\n\r]+/)[0]] = clsMap[key].trim();
         }
+        // create Issue object
         const issue: Issue = {
-          name: trimedMap.summary.replace(/[\n\r]+/g, ' '),
+          name: '',
           ver: trimedMap.fixVersions,
           status: trimedMap.status,
           assignee: trimedMap.assignee,
           id: trimedMap.issuekey
         };
+
+        // assign issue name and issue parent id
+        const links = await row.$$(':scope > td.summary a.issue-link');
+        if (links.length > 1) {
+          const parentId: string = await (await links[0].getProperty('innerText')).jsonValue();
+          issue.parentId = parentId;
+          issue.name = await (await links[1].getProperty('innerText')).jsonValue();
+        } else {
+          issue.name = await (await links[0].getProperty('innerText')).jsonValue();
+        }
         return issue;
       })
     );
