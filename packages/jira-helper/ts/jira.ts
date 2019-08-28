@@ -4,7 +4,8 @@ import {launch} from './puppeteer';
 import * as jsYaml from 'js-yaml';
 import _ from 'lodash';
 import pup from 'puppeteer-core';
-
+import moment from 'moment';
+moment.locale('zh-cn');
 const log = require('log4js').getLogger('jira-helper');
 
 export interface Issue {
@@ -247,9 +248,10 @@ async function addSubTask(page: pup.Page, task: Issue) {
   if (!duration.endsWith('d') && !duration.endsWith('h')) {
     duration = duration + 'd';
   }
+  const dates = date();
   const formValues = {
-    'Start date': '26/八月/19',
-    'End date': '26/九月/19',
+    'Start date': dates[0],
+    'End date': dates[1],
     // tslint:disable-next-line: object-literal-key-quotes
     '初始预估': duration,
     剩余的估算: duration,
@@ -289,4 +291,11 @@ async function listSubtasks(page: pup.Page, {ver}: {ver: string[]}) {
     });
   }, ver);
   return tasks;
+}
+
+
+function date(): [string, string] {
+  const time = moment();
+  // console.log(time.format('D/MMMM/YY'), time.add(21, 'days').format('D/MMMM/YY'));
+  return [time.format('D/MMMM/YY'), time.add(21, 'days').format('D/MMMM/YY')];
 }
