@@ -2,13 +2,13 @@
 ### Chrome driver version: 76.0.3809.68
 1. First time run:
 ```bash
-drcp run ts/puppeteer.ts#login jira-helper
+drcp run ts/jira.ts#login jira-helper
 ```
 Login from opened Browser.
 
-2. Sync up
+2. List stories and top level tasks
 ```bash
-drcp run ts/puppeteer.ts#listTrello jira-helper [--headless]
+drcp run ts/jira.ts#listStory jira-helper [--headless]
 ```
 
 <!-- ### Puppeteer

@@ -12,23 +12,23 @@ export interface Issue {
   id: string;
   status: string;
   desc?: string;
-  ver: string;
+  ver: string[];
   assignee: string;
   tasks?: Issue[];
   parentId?: string;
 }
 
-export function columnsToIssue(...cols: string[]): Issue {
-  return {
-    name: cols[2],
-    id: cols[0],
-    status: cols[1],
-    ver: cols[3],
-    assignee: cols[4]
-  };
-}
+// export function columnsToIssue(...cols: string[]): Issue {
+//   return {
+//     name: cols[2],
+//     id: cols[0],
+//     status: cols[1],
+//     ver: [cols[3]],
+//     assignee: cols[4]
+//   };
+// }
 
-export async function loginJira() {
+export async function login() {
   const browser = await launch(false);
   const pages = await browser.pages();
   await pages[0].goto('https://issue.bkjk-inc.com',
@@ -37,18 +37,19 @@ export async function loginJira() {
 
 // export await function waitForCondition()
 
-export async function domToIssues(page: pup.Page) {
+export async function domToIssues(page: pup.Page,
+  onEachPage?: (trPairs: [Issue, pup.ElementHandle][]) => Promise<void>
+) {
   let issues: Issue[] = [];
   let pageIdx = 1;
   while (true) {
-    console.log('Page', page.url());
+    log.info('Page %s: %s', ++pageIdx, page.url());
     const currPageIssues = await fetchPage();
     issues = issues.concat(currPageIssues);
     const nextPageLink = await page.$('.pagination > a.nav-next');
     if (nextPageLink == null)
       break;
     await nextPageLink.click();
-    console.log('Go page', ++pageIdx);
     // check first cell, wait for its DOM mutation
 
     const lastFirstRowId = currPageIssues[0].id;
@@ -61,7 +62,8 @@ export async function domToIssues(page: pup.Page) {
   }
 
   async function fetchPage() {
-    return await Promise.all(
+    const trPairs: [Issue, pup.ElementHandle][] = [];
+    const done = await Promise.all(
       (await page.$$('#issuetable > tbody > tr')).map(async row => {
         const clsMap = await row.$$eval(':scope > td', els => {
           const colMap: {[k: string]: string} = {};
@@ -79,11 +81,13 @@ export async function domToIssues(page: pup.Page) {
         // create Issue object
         const issue: Issue = {
           name: '',
-          ver: trimedMap.fixVersions,
+          ver: [trimedMap.fixVersions],
           status: trimedMap.status,
           assignee: trimedMap.assignee,
           id: trimedMap.issuekey
         };
+        if (onEachPage)
+          trPairs.push([issue, row]);
 
         // assign issue name and issue parent id
         const links = await row.$$(':scope > td.summary a.issue-link');
@@ -94,74 +98,101 @@ export async function domToIssues(page: pup.Page) {
         } else {
           issue.name = await (await links[0].getProperty('innerText')).jsonValue();
         }
+
+        issue.ver = await Promise.all(
+          (await row.$$(':scope > td.fixVersions > *'))
+          .map(async a => (await a.getProperty('innerText')).jsonValue())
+        );
         return issue;
       })
     );
+    if (onEachPage)
+      await onEachPage(trPairs);
+
+    return done;
   }
 
   return issues;
 }
 
-export async function listJira(
+export async function listStory(
   // tslint:disable-next-line: max-line-length
-  url = 'https://issue.bkjk-inc.com/issues/?filter=14086&jql=project%20%3D%20BYJ%20AND%20issuetype%20in%20(%E4%BB%BB%E5%8A%A1%2C%20%E6%95%85%E4%BA%8B)%20AND%20resolution%20%3D%20Unresolved%20AND%20fixVersion%20%3D%20%22%E8%B4%9D%E7%94%A8%E9%87%91v1.9%2F910%22%20ORDER%20BY%20key%20DESC%2C%20summary%20DESC%2C%20updated%20DESC') {
+  url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
   const browser = await launch(false);
   const pages = await browser.pages();
   await pages[0].goto(url, {timeout: 0, waitUntil: 'networkidle2'});
   await pages[0].waitFor('#issuetable > tbody', {visible: true});
   // tslint:disable-next-line: no-console
-  console.log('fetching page done');
+  log.info('fetching page done');
   const page = pages[0];
 
-  const issues = await domToIssues(page);
+  const issues = await domToIssues(page, forStorys);
 
-  for (const issue of issues) {
-    await page.$$eval('a.issue-link', (els, issue) => {
-      els.some(el => {
-        if (el.getAttribute('data-issue-key') === issue.id) {
-          (el as HTMLElement).click();
-          return true;
+  log.info('Num of stories:', issues.length);
+
+  // for (const issue of issues) {
+  async function forStorys(trPairs: [Issue, pup.ElementHandle][]) {
+    for (const [issue, tr] of trPairs) {
+      const anchors = await tr.$$(`:scope > .issuekey > a.issue-link[data-issue-key=${issue.id}]`);
+
+      let linkClicked = false;
+      for (const anchor of anchors) {
+        const bx = await anchor.boundingBox();
+        if (bx && bx.height > 10 && bx.width > 10) {
+          log.info('Go issue details: ', issue.id);
+          await anchor.click();
+
+          await page.waitFor(300);
+          issue.tasks = await listSubtasks(page, issue);
+          await page.goBack({waitUntil: 'networkidle0'});
+          linkClicked = true;
+          break;
         }
-        return false;
-      });
-    }, issue);
-    await page.waitFor(300);
-    // await page.waitForNavigation({waitUntil: 'networkidle0'});
-    // await page.goto('https://issue.bkjk-inc.com/browse/' + issue.id, {timeout: 0, waitUntil: 'networkidle2'});
-    issue.tasks = await listSubtasks(page, issue);
-    await page.goBack({waitUntil: 'networkidle0'});
+      }
+      if (!linkClicked) {
+        throw new Error(`Can not find link for ${issue.id}`);
+      }
+    }
   }
-  log.info(jsYaml.safeDump(issues));
+
+  const grouped = _.groupBy(issues, issue => issue.id.slice(0, issue.id.indexOf('-')));
+
+  fs.writeFileSync('dist/list-story.yaml', jsYaml.safeDump(grouped));
+  log.info('Result has been written to dist/list-story.yaml');
 
   await browser.close();
   // tslint:disable-next-line: no-console
   console.log('Have a nice day');
 }
 
-export async function syncJira() {
+export async function syncToJira() {
   const browser = await launch(false);
   const pages = await browser.pages();
 
-  const issues: Issue[] = jsYaml.load(fs.readFileSync(__dirname + '/../add-jira.yaml', 'utf8'));
-  log.info(issues.length);
-  for (const issue of issues) {
-    if (!issue.tasks)
-      continue;
-    log.info('Check issue', issue.id);
+  const issueByProj: {[proj: string]: Issue[]} = jsYaml.load(fs.readFileSync('dist/sync-to-jira.yaml', 'utf8'));
 
-    const tasksWithoutId = issue.tasks.filter(task => task.id == null);
-    // log.info(tasksWithoutId);
-    if (tasksWithoutId.length === 0)
-      continue;
-    await pages[0].goto('https://issue.bkjk-inc.com/browse/' + issue.id, {timeout: 0, waitUntil: 'networkidle2'});
-    const remoteTasks = await listSubtasks(pages[0], issue);
-    issue.ver = await pages[0].$('#fixfor-val').then(el => el!.getProperty('innerText')).then(jh => jh.jsonValue());
+  for (const proj of Object.keys(issueByProj)) {
+    const issues = issueByProj[proj];
+    log.info(issues.length);
+    for (const issue of issues) {
+      if (!issue.tasks)
+        continue;
+      log.info('Check issue', issue.id);
 
-    const toAdd = _.differenceBy(tasksWithoutId, remoteTasks, issue => issue.name);
-    log.info(toAdd);
-    for (const item of toAdd) {
-      item.ver = issue.ver;
-      await addSubTask(pages[0], item);
+      const tasksWithoutId = issue.tasks.filter(task => task.id == null);
+      // log.info(tasksWithoutId);
+      if (tasksWithoutId.length === 0)
+        continue;
+      await pages[0].goto('https://issue.bkjk-inc.com/browse/' + issue.id, {timeout: 0, waitUntil: 'networkidle2'});
+      const remoteTasks = await listSubtasks(pages[0], issue);
+      issue.ver = await pages[0].$('#fixfor-val').then(el => el!.getProperty('innerText')).then(jh => jh.jsonValue());
+
+      const toAdd = _.differenceBy(tasksWithoutId, remoteTasks, issue => issue.name);
+      log.info(toAdd);
+      for (const item of toAdd) {
+        item.ver = issue.ver;
+        await addSubTask(pages[0], item);
+      }
     }
   }
   browser.close();
@@ -196,7 +227,7 @@ async function addSubTask(page: pup.Page, task: Issue) {
 
   const input = await dialog.$('#fixVersions-textarea');
   await input!.click();
-  await input!.type(task.ver);
+  await input!.type(task.ver[0]);
   await page.keyboard.press('Enter');
   await dialog.$('#description-wiki-edit').then(el => el!.click());
   await page.keyboard.type(task.desc ? task.desc : task.name);
@@ -240,7 +271,7 @@ async function addSubTask(page: pup.Page, task: Issue) {
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
-async function listSubtasks(page: pup.Page, {ver}: {ver: string}) {
+async function listSubtasks(page: pup.Page, {ver}: {ver: string[]}) {
   const tasks = await page.$$eval('#view-subtasks #issuetable > tbody > tr', (els, ver) => {
     return els.map(el => {
       const name: HTMLElement | null = el.querySelector(':scope > .stsummary > a');
