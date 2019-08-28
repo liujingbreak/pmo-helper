@@ -169,7 +169,7 @@ export async function syncToJira() {
   const browser = await launch(false);
   const pages = await browser.pages();
 
-  const issueByProj: {[proj: string]: Issue[]} = jsYaml.load(fs.readFileSync('dist/sync-to-jira.yaml', 'utf8'));
+  const issueByProj: {[proj: string]: Issue[]} = jsYaml.load(fs.readFileSync('dist/list-story.yaml', 'utf8'));
 
   for (const proj of Object.keys(issueByProj)) {
     const issues = issueByProj[proj];
@@ -185,7 +185,8 @@ export async function syncToJira() {
         continue;
       await pages[0].goto('https://issue.bkjk-inc.com/browse/' + issue.id, {timeout: 0, waitUntil: 'networkidle2'});
       const remoteTasks = await listSubtasks(pages[0], issue);
-      issue.ver = await pages[0].$('#fixfor-val').then(el => el!.getProperty('innerText')).then(jh => jh.jsonValue());
+      issue.ver = await Promise.all((await pages[0].$$('#fixfor-val a'))
+        .map(a => a.getProperty('innerText').then(jh => jh.jsonValue())));
 
       const toAdd = _.differenceBy(tasksWithoutId, remoteTasks, issue => issue.name);
       log.info(toAdd);
@@ -227,7 +228,8 @@ async function addSubTask(page: pup.Page, task: Issue) {
 
   const input = await dialog.$('#fixVersions-textarea');
   await input!.click();
-  await input!.type(task.ver[0]);
+  log.info('version:', task.ver[0]);
+  await input!.type(task.ver[0], {delay: 100});
   await page.keyboard.press('Enter');
   await dialog.$('#description-wiki-edit').then(el => el!.click());
   await page.keyboard.type(task.desc ? task.desc : task.name);
