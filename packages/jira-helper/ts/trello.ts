@@ -7,16 +7,30 @@ import {mergeMap, map, reduce} from 'rxjs/operators';
 import * as jsYaml from 'js-yaml';
 import {launch, waitForVisible} from './puppeteer';
 import {Issue} from './jira';
+import axios, {AxiosResponse} from 'axios';
+
 const log = require('log4js').getLogger('jira-helper');
 
-export interface TrelloBoard {
+const API_TOKEN = '38cfe637eacbbcf7bbd90b9ee83f31113d04b4d34fd79f13a5fe51608ba88028';
+const API_KEY = '1846faaab21515d5bab05dec2fbda8bc';
+
+export interface TrelloColumn {
   name: string;
+  id?: string;
   cards: TrelloCard[];
 }
 
 export interface TrelloCard {
   title: string;
   shortId: string;
+  id?: string;
+}
+
+interface TrelloApiCard {
+  id: string;
+  name: string;
+  badges?: any[];
+  labels?: any[];
 }
 
 export async function listTrello() {
@@ -38,7 +52,7 @@ export async function listTrello() {
   console.log('Have a nice day');
 }
 
-async function listColumn(page: Page): Promise<tr.TrelloBoard[]> {
+async function listColumn(page: Page): Promise<tr.TrelloColumn[]> {
   await page.waitFor('#board', {visible: true});
   const columns = await page.$$('#board > .list-wrapper > .list');
 
@@ -72,9 +86,9 @@ async function listColumn(page: Page): Promise<tr.TrelloBoard[]> {
     map(([name, cards]) => {
       // log.info(` [ ${name} ] `);
       // log.info(cards.map(card => `  - ${card.shortId}: ${card.title}`).join('\n'));
-      return {name, cards} as tr.TrelloBoard;
+      return {name, cards} as tr.TrelloColumn;
     }),
-    reduce<tr.TrelloBoard>((columns, bd) => {
+    reduce<tr.TrelloColumn>((columns, bd) => {
       columns.push(bd);
       return columns;
     }, [])
@@ -127,5 +141,35 @@ async function createColumn(page: Page, name: string) {
   await button!.click();
   await waitForVisible(button!, false);
   console.log('Column %s added', name);
+}
+
+export async function apiTest() {
+  const res = await axios.get('https://api.trello.com/1/members/me/boards', {
+    params: {
+      key: API_KEY,
+      token: API_TOKEN
+    }});
+  console.log(res.data);
+}
+
+export async function apiGetList(boardId = '5acdbf6678087812e8838ec4') {
+  const res = await axios.get<TrelloColumn[]>(`https://api.trello.com/1/boards/${boardId}/lists`, {params: {
+    key: API_KEY,
+    token: API_TOKEN
+  }});
+  const list = res.data;
+  const obs = list
+  .map(list => from(axios.get<TrelloApiCard[]>(`https://api.trello.com/1/lists/${list.id}/cards`)));
+
+  await forkJoin<AxiosResponse<TrelloApiCard[]>>(...obs).pipe(
+    map(responses => {
+      for (let i = 0, l = responses.length; i < l; i++) {
+        // console.log(responses[i].data);
+        // res.data[i].cards = responses[i].data;
+        log.info('%s Number of cards', list[i].name, l);
+      }
+      console.log(responses[0].data[0]);
+    })
+  ).toPromise();
 }
 

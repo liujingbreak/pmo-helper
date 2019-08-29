@@ -5,6 +5,7 @@ import * as jsYaml from 'js-yaml';
 import _ from 'lodash';
 import pup from 'puppeteer-core';
 import moment from 'moment';
+import api from '__api';
 moment.locale('zh-cn');
 const log = require('log4js').getLogger('jira-helper');
 
@@ -17,6 +18,7 @@ export interface Issue {
   assignee: string;
   tasks?: Issue[];
   parentId?: string;
+  est?: string; // estimation duration
 }
 
 // export function columnsToIssue(...cols: string[]): Issue {
@@ -104,6 +106,10 @@ export async function domToIssues(page: pup.Page,
           (await row.$$(':scope > td.fixVersions > *'))
           .map(async a => (await a.getProperty('innerText')).jsonValue())
         );
+
+        if (trimedMap.aggregatetimeestimate) {
+          issue.est = trimedMap.aggregatetimeestimate.trim();
+        }
         return issue;
       })
     );
@@ -119,6 +125,11 @@ export async function domToIssues(page: pup.Page,
 export async function listStory(
   // tslint:disable-next-line: max-line-length
   url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
+
+  const includeProj = api.argv.include ?
+  new Set<string>((api.argv.include as string).split(',').map(el => el.trim()) ):
+    null;
+
   const browser = await launch(false);
   const pages = await browser.pages();
   await pages[0].goto(url, {timeout: 0, waitUntil: 'networkidle2'});
@@ -138,7 +149,10 @@ export async function listStory(
 
       let linkClicked = false;
       for (const anchor of anchors) {
+        if (includeProj && includeProj.has(issue.id.slice(issue.id.indexOf('-'))))
+          continue;
         const bx = await anchor.boundingBox();
+
         if (bx && bx.height > 10 && bx.width > 10) {
           log.info('Go issue details: ', issue.id);
           await anchor.click();

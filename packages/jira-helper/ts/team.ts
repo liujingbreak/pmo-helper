@@ -17,7 +17,7 @@ export async function listIssues() {
 
   const browser = await launch();
   const page = (await browser.pages())[0];
-  await page.goto('https://issue.bkjk-inc.com/issues/?filter=14109', {waitUntil: 'networkidle2'});
+  await page.goto('https://issue.bkjk-inc.com/issues/?filter=14126', {waitUntil: 'networkidle2'});
 
   const issues = await domToIssues(page);
 

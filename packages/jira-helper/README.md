@@ -8,7 +8,7 @@ Login from opened Browser.
 
 2. List stories and top level tasks
 ```bash
-drcp run ts/jira.ts#listStory jira-helper [--headless]
+drcp run ts/jira.ts#listStory jira-helper [--include BCL[,BYJ...]] [--headless]
 ```
 
 <!-- ### Puppeteer
