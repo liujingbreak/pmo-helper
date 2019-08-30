@@ -129,6 +129,8 @@ export async function listStory(
   const includeProj = api.argv.include ?
   new Set<string>((api.argv.include as string).split(',').map(el => el.trim()) ):
     null;
+  if (includeProj)
+    console.log('include project prfiex: ', includeProj);
 
   const browser = await launch(false);
   const pages = await browser.pages();
@@ -138,19 +140,29 @@ export async function listStory(
   log.info('fetching page done');
   const page = pages[0];
 
-  const issues = await domToIssues(page, forStorys);
+  let issues = await domToIssues(page, forStorys);
+
+  if (includeProj) {
+    issues = issues.filter(issue => {
+      const prefix = issue.id.slice(0, issue.id.indexOf('-'));
+      return includeProj.has(prefix);
+    });
+  }
 
   log.info('Num of stories:', issues.length);
 
   // for (const issue of issues) {
   async function forStorys(trPairs: [Issue, pup.ElementHandle][]) {
     for (const [issue, tr] of trPairs) {
+      const prefix = issue.id.slice(0, issue.id.indexOf('-'));
+      if (includeProj && !includeProj.has(prefix)) {
+        continue;
+      }
+
       const anchors = await tr.$$(`:scope > .issuekey > a.issue-link[data-issue-key=${issue.id}]`);
 
       let linkClicked = false;
       for (const anchor of anchors) {
-        if (includeProj && includeProj.has(issue.id.slice(issue.id.indexOf('-'))))
-          continue;
         const bx = await anchor.boundingBox();
 
         if (bx && bx.height > 10 && bx.width > 10) {
@@ -180,7 +192,7 @@ export async function listStory(
   console.log('Have a nice day');
 }
 
-export async function syncToJira() {
+export async function sync() {
   const browser = await launch(false);
   const pages = await browser.pages();
 
@@ -194,7 +206,13 @@ export async function syncToJira() {
         continue;
       log.info('Check issue', issue.id);
 
-      const tasksWithoutId = issue.tasks.filter(task => task.id == null);
+      const tasksWithoutId = issue.tasks
+      .filter(task => task.id == null)
+      .map(task => {
+        if (!task.name.startsWith('FE -'))
+          task.name = 'FE - ' + task.name;
+        return task;
+      });
       // log.info(tasksWithoutId);
       if (tasksWithoutId.length === 0)
         continue;
@@ -204,11 +222,11 @@ export async function syncToJira() {
         .map(a => a.getProperty('innerText').then(jh => jh.jsonValue())));
 
       const toAdd = _.differenceBy(tasksWithoutId, remoteTasks, issue => issue.name);
-      log.info(toAdd);
-      for (const item of toAdd) {
-        item.ver = issue.ver;
-        await addSubTask(pages[0], item);
-      }
+      log.info('Creating new issue\n', toAdd);
+      // for (const item of toAdd) {
+      //   item.ver = issue.ver;
+      //   await addSubTask(pages[0], item);
+      // }
     }
   }
   browser.close();
@@ -257,7 +275,7 @@ async function addSubTask(page: pup.Page, task: Issue) {
   texts.forEach((text, idx) => labelMap[text.split(/[\n\r\t]+/)[0]] = labels[idx]);
   // log.info(Object.keys(labelMap));
 
-  const matchName = /[(（]([0-9.][dhDH]?)[)）]\s*$/.exec(task.name);
+  const matchName = /[(（]([0-9.]+[dhDH]?)[)）]\s*$/.exec(task.name);
   let duration = matchName ? matchName[1] : '0.5d';
   if (!duration.endsWith('d') && !duration.endsWith('h')) {
     duration = duration + 'd';
