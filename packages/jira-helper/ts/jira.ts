@@ -222,11 +222,11 @@ export async function sync() {
         .map(a => a.getProperty('innerText').then(jh => jh.jsonValue())));
 
       const toAdd = _.differenceBy(tasksWithoutId, remoteTasks, issue => issue.name);
-      log.info('Creating new issue\n', toAdd);
-      // for (const item of toAdd) {
-      //   item.ver = issue.ver;
-      //   await addSubTask(pages[0], item);
-      // }
+      // log.info('Creating new issue\n', toAdd);
+      for (const item of toAdd) {
+        item.ver = issue.ver;
+        await addSubTask(pages[0], item);
+      }
     }
   }
   browser.close();
