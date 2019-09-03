@@ -21,16 +21,6 @@ export interface Issue {
   est?: string; // estimation duration
 }
 
-// export function columnsToIssue(...cols: string[]): Issue {
-//   return {
-//     name: cols[2],
-//     id: cols[0],
-//     status: cols[1],
-//     ver: [cols[3]],
-//     assignee: cols[4]
-//   };
-// }
-
 export async function login() {
   const browser = await launch(false);
   const pages = await browser.pages();
@@ -127,10 +117,14 @@ export async function listStory(
   url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
 
   const includeProj = api.argv.include ?
-  new Set<string>((api.argv.include as string).split(',').map(el => el.trim()) ):
-    null;
+    new Set<string>((api.argv.include as string).split(',').map(el => el.trim()) ):
+      null;
   if (includeProj)
     console.log('include project prfiex: ', includeProj);
+
+  const includeVer = api.argv.includeVersion ?
+    new Set<string>((api.argv.includeVersion as string).split(',').map(el => el.trim()) ) : null;
+
 
   const browser = await launch(false);
   const pages = await browser.pages();
@@ -149,13 +143,20 @@ export async function listStory(
     });
   }
 
+  if (includeVer) {
+    issues = issues.filter(issue => {
+      return issue.ver.some(version => includeVer.has(version));
+    });
+  }
+
   log.info('Num of stories:', issues.length);
 
   // for (const issue of issues) {
   async function forStorys(trPairs: [Issue, pup.ElementHandle][]) {
     for (const [issue, tr] of trPairs) {
       const prefix = issue.id.slice(0, issue.id.indexOf('-'));
-      if (includeProj && !includeProj.has(prefix)) {
+      if (includeProj && !includeProj.has(prefix) ||
+        includeVer && !issue.ver.some(version => includeVer.has(version))) {
         continue;
       }
 
