@@ -123,7 +123,7 @@ export async function listStory(
     console.log('include project prfiex: ', includeProj);
 
   const includeVer = api.argv.includeVersion ?
-    new Set<string>((api.argv.includeVersion as string).split(',').map(el => el.trim()) ) : null;
+    (api.argv.includeVersion as string).split(',').map(el => el.trim()) : null;
 
 
   const browser = await launch(false);
@@ -145,18 +145,23 @@ export async function listStory(
 
   if (includeVer) {
     issues = issues.filter(issue => {
-      return issue.ver.some(version => includeVer.has(version));
+      // console.log(issue.ver, includeVer);
+      return issue.ver.map(ver => ver.toLowerCase())
+        .some(version => includeVer.some(include => version.indexOf(include) >= 0));
     });
   }
 
+
   log.info('Num of stories:', issues.length);
+
 
   // for (const issue of issues) {
   async function forStorys(trPairs: [Issue, pup.ElementHandle][]) {
     for (const [issue, tr] of trPairs) {
       const prefix = issue.id.slice(0, issue.id.indexOf('-'));
       if (includeProj && !includeProj.has(prefix) ||
-        includeVer && !issue.ver.some(version => includeVer.has(version))) {
+        includeVer && !issue.ver.map(ver => ver.toLowerCase())
+          .some(version => includeVer.some(include => version.indexOf(include) >= 0))) {
         continue;
       }
 
@@ -169,8 +174,7 @@ export async function listStory(
         if (bx && bx.height > 10 && bx.width > 10) {
           log.info('Go issue details: ', issue.id);
           await anchor.click();
-
-          await page.waitFor(300);
+          await page.waitFor(300); // TODO
           issue.tasks = await listSubtasks(page, issue);
           await page.goBack({waitUntil: 'networkidle0'});
           linkClicked = true;
@@ -197,7 +201,8 @@ export async function sync() {
   const browser = await launch(false);
   const pages = await browser.pages();
 
-  const issueByProj: {[proj: string]: Issue[]} = jsYaml.load(fs.readFileSync('dist/list-story.yaml', 'utf8'));
+  const issueByProj: {[proj: string]: Issue[]} = jsYaml.load(fs.readFileSync(
+    api.argv.file ? api.argv.file : 'dist/list-story.yaml', 'utf8'));
 
   for (const proj of Object.keys(issueByProj)) {
     const issues = issueByProj[proj];
