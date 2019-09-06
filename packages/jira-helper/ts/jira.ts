@@ -331,6 +331,27 @@ async function listSubtasks(page: pup.Page, {ver}: {ver: string[]}) {
   return tasks;
 }
 
+export async function listParent() {
+  const browser = await launch(false);
+  const page = (await browser.pages())[0];
+
+  // const topLevelIssue: Issue[] = [];
+  // tslint:disable-next-line: max-line-length
+  await page.goto('https://issue.bkjk-inc.com/issues/?filter=14179&jql=project%20in%20(BYJ%2C%20ZLSZB%2C%20HDECOR%2C%20BCL%2C%20ZLZB%2C%20MF)%20AND%20issuetype%20in%20(subTaskIssueTypes()%2C%20%E4%BB%BB%E5%8A%A1%2C%20%E6%95%85%E4%BA%8B%2C%20%E6%95%85%E9%9A%9C%2C%20%E6%B5%8B%E8%AF%95%E6%95%85%E9%9A%9C%2C%20%E7%94%9F%E4%BA%A7%E6%95%85%E9%9A%9C%2C%20%E8%81%94%E8%B0%83%E6%95%85%E9%9A%9C)%20AND%20status%20in%20(Open%2C%20Reopen%2C%20Developing%2C%20Testing)%20AND%20fixVersion%20in%20(EMPTY%2C%20%22%E8%B4%9D%E5%88%86%E6%9C%9FV1.1.0%2F924%22%2C%20%22%E8%B4%9D%E7%94%A8%E9%87%91v1.10%2F924%22)%20AND%20assignee%20in%20(haiz.chen001%2C%20xiang.zhang%2C%20xue.zou001%2C%20li1.yu)%20ORDER%20BY%20fixVersion%20ASC%2C%20assignee%20ASC%2C%20status%20ASC%2C%20key%20DESC%2C%20updated%20DESC',
+    {waitUntil: 'networkidle2'});
+  const issues = await domToIssues(page, async rows => {
+    for (const [issue, tr] of rows) {
+      if (issue.parentId) {
+        const links = await tr.$$(':scope > td.summary a.issue-link');
+        await links[0].click();
+        await page.waitForNavigation({waitUntil: 'networkidle2'});
+        await page.goBack();
+      }
+    }
+  });
+  console.log(issues);
+  browser.close();
+}
 
 function date(): [string, string] {
   const time = moment();
