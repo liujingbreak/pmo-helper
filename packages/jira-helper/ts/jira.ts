@@ -10,6 +10,7 @@ moment.locale('zh-cn');
 const log = require('log4js').getLogger('jira-helper');
 
 export interface Issue {
+  brief?: string;
   name: string;
   id: string;
   status: string;
@@ -18,7 +19,8 @@ export interface Issue {
   assignee: string;
   tasks?: Issue[];
   parentId?: string;
-  est?: string; // estimation duration
+  est?: number; // estimation duration
+  intEst?: number; // API integration estimation duration
 }
 
 export async function login() {
@@ -36,7 +38,7 @@ export async function domToIssues(page: pup.Page,
   let issues: Issue[] = [];
   let pageIdx = 1;
   while (true) {
-    log.info('Page %s: %s', ++pageIdx, page.url());
+    log.info('Page %s: %s', pageIdx++, page.url());
     const currPageIssues = await fetchPage();
     issues = issues.concat(currPageIssues);
     const nextPageLink = await page.$('.pagination > a.nav-next');
@@ -98,7 +100,7 @@ export async function domToIssues(page: pup.Page,
         );
 
         if (trimedMap.aggregatetimeestimate) {
-          issue.est = trimedMap.aggregatetimeestimate.trim();
+          issue.est = estimationToNum(trimedMap.aggregatetimeestimate.trim());
         }
         return issue;
       })
@@ -123,7 +125,7 @@ export async function listStory(
     console.log('include project prfiex: ', includeProj);
 
   const includeVer = api.argv.includeVersion ?
-    (api.argv.includeVersion as string).split(',').map(el => el.trim()) : null;
+    (api.argv.includeVersion + '').split(',').map(el => el.trim()) : null;
 
 
   const browser = await launch(false);
@@ -174,7 +176,7 @@ export async function listStory(
         if (bx && bx.height > 10 && bx.width > 10) {
           log.info('Go issue details: ', issue.id);
           await anchor.click();
-          await page.waitFor(300); // TODO
+          await page.waitForSelector('.list-view', {hidden: true});
           issue.tasks = await listSubtasks(page, issue);
           await page.goBack({waitUntil: 'networkidle0'});
           linkClicked = true;
@@ -335,21 +337,46 @@ export async function listParent() {
   const browser = await launch(false);
   const page = (await browser.pages())[0];
 
-  // const topLevelIssue: Issue[] = [];
+  const storyMap = new Map<string, Issue>();
   // tslint:disable-next-line: max-line-length
   await page.goto('https://issue.bkjk-inc.com/issues/?filter=14179&jql=project%20in%20(BYJ%2C%20ZLSZB%2C%20HDECOR%2C%20BCL%2C%20ZLZB%2C%20MF)%20AND%20issuetype%20in%20(subTaskIssueTypes()%2C%20%E4%BB%BB%E5%8A%A1%2C%20%E6%95%85%E4%BA%8B%2C%20%E6%95%85%E9%9A%9C%2C%20%E6%B5%8B%E8%AF%95%E6%95%85%E9%9A%9C%2C%20%E7%94%9F%E4%BA%A7%E6%95%85%E9%9A%9C%2C%20%E8%81%94%E8%B0%83%E6%95%85%E9%9A%9C)%20AND%20status%20in%20(Open%2C%20Reopen%2C%20Developing%2C%20Testing)%20AND%20fixVersion%20in%20(EMPTY%2C%20%22%E8%B4%9D%E5%88%86%E6%9C%9FV1.1.0%2F924%22%2C%20%22%E8%B4%9D%E7%94%A8%E9%87%91v1.10%2F924%22)%20AND%20assignee%20in%20(haiz.chen001%2C%20xiang.zhang%2C%20xue.zou001%2C%20li1.yu)%20ORDER%20BY%20fixVersion%20ASC%2C%20assignee%20ASC%2C%20status%20ASC%2C%20key%20DESC%2C%20updated%20DESC',
     {waitUntil: 'networkidle2'});
-  const issues = await domToIssues(page, async rows => {
+  await domToIssues(page, async rows => {
     for (const [issue, tr] of rows) {
       if (issue.parentId) {
-        const links = await tr.$$(':scope > td.summary a.issue-link');
-        await links[0].click();
-        await page.waitForNavigation({waitUntil: 'networkidle2'});
-        await page.goBack();
+        const link = await tr.$(':scope > td.summary a.issue-link');
+        const pname = await page
+        .evaluate(el => el.getAttribute('title'), link);
+        let pIssue: Issue;
+        if (!storyMap.has(issue.parentId)) {
+          pIssue = {
+            brief: pname,
+            name: pname,
+            id: issue.parentId,
+            status: '',
+            assignee: '',
+            ver: [],
+            est: 0,
+            tasks: []
+          };
+          storyMap.set(issue.parentId, pIssue);
+        } else {
+          pIssue = storyMap.get(issue.parentId)!;
+        }
+        if (/API\s*联调/i.test(issue.name)) {
+          pIssue.intEst = issue.est;
+        } else {
+          pIssue.est! += issue.est!;
+        }
+        pIssue.tasks!.push(issue);
       }
     }
   });
-  console.log(issues);
+
+  console.log('Writted to dist/parent-story.yaml');
+  const stories = Array.from(storyMap.values());
+  fs.writeFileSync('dist/parent-story.yaml', jsYaml.safeDump(stories));
+  console.log(stories.map(story => displayIssue(story)).join('\n'));
   browser.close();
 }
 
@@ -357,4 +384,19 @@ function date(): [string, string] {
   const time = moment();
   // console.log(time.format('D/MMMM/YY'), time.add(21, 'days').format('D/MMMM/YY'));
   return [time.format('D/MMMM/YY'), time.add(21, 'days').format('D/MMMM/YY')];
+}
+
+function estimationToNum(estimationStr: string) {
+  const match = /([0-9.]+)(日|小时)/.exec(estimationStr);
+  if (!match) {
+    throw new Error(`Invalide estimation format: ${estimationStr}`);
+  }
+  if (match[2] === '小时') {
+    return parseFloat(match[1]) / 8;
+  }
+  return parseFloat(match[1]);
+}
+
+function displayIssue(issue: Issue): string {
+  return issue.id + ` ${issue.name} (${issue.est}) | API int:${issue.intEst || '0'}`;
 }
