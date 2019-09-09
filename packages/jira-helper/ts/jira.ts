@@ -387,12 +387,14 @@ function date(): [string, string] {
 }
 
 function estimationToNum(estimationStr: string) {
-  const match = /([0-9.]+)(日|小时)/.exec(estimationStr);
+  const match = /([0-9.]+)(日|小时|分)/.exec(estimationStr);
   if (!match) {
     throw new Error(`Invalide estimation format: ${estimationStr}`);
   }
   if (match[2] === '小时') {
     return parseFloat(match[1]) / 8;
+  } else if (match[2] === '分') {
+    return parseInt(match[1], 10) / 8 / 60;
   }
   return parseFloat(match[1]);
 }
