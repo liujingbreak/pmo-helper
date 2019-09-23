@@ -125,7 +125,7 @@ export async function listStory(
     console.log('include project prfiex: ', includeProj);
 
   const includeVer = api.argv.includeVersion ?
-    (api.argv.includeVersion + '').split(',').map(el => el.trim()) : null;
+    (api.argv.includeVersion + '').split(',').map(el => el.trim().toLocaleLowerCase()) : null;
 
 
   const browser = await launch(false);
@@ -291,7 +291,7 @@ async function addSubTask(page: pup.Page, task: Issue) {
   const dates = date();
   const formValues = {
     'Start date': dates[0],
-    'End date': dates[1],
+    'End date': endDateBaseOnVersion(task.ver[0]) || dates[1],
     // tslint:disable-next-line: object-literal-key-quotes
     '初始预估': duration,
     剩余的估算: duration,
@@ -401,4 +401,19 @@ function estimationToNum(estimationStr: string) {
 
 function displayIssue(issue: Issue): string {
   return issue.id + ` ${issue.name} (${issue.est}) | API int:${issue.intEst || '0'}`;
+}
+
+function endDateBaseOnVersion(ver: string) {
+  const verMatch = /[ /](\d{1,2})(\d\d)$/.exec(ver);
+  if (verMatch == null || verMatch[1] == null)
+    return null;
+  const time = moment();
+  time.month(parseInt(verMatch[1], 10) - 1);
+  time.date(parseInt(verMatch[2], 10));
+  time.subtract(7, 'days');
+  return time.format('D/MMMM/YY');
+}
+
+export function testDate() {
+  console.log(endDateBaseOnVersion('feafa/903'));
 }
