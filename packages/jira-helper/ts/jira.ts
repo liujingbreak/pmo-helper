@@ -21,7 +21,11 @@ export interface Issue {
   parentId?: string;
   est?: number; // estimation duration
   intEst?: number; // API integration estimation duration
+
+  '+'?: {[assignee: string]: string[]};
 }
+
+type NewTask = {[key in keyof Issue]?: Issue[key]} & {name: string};
 
 export async function login() {
   const browser = await launch(false);
@@ -58,8 +62,9 @@ export async function domToIssues(page: pup.Page,
 
   async function fetchPage() {
     const trPairs: [Issue, pup.ElementHandle][] = [];
+    const table = await page.$('#issuetable');
     const done = await Promise.all(
-      (await page.$$('#issuetable > tbody > tr')).map(async row => {
+      (await table!.$$(':scope > tbody > tr')).map(async row => {
         const clsMap = await row.$$eval(':scope > td', els => {
           const colMap: {[k: string]: string} = {};
           els.forEach(el => {
@@ -210,37 +215,59 @@ export async function sync() {
     const issues = issueByProj[proj];
     log.info(issues.length);
     for (const issue of issues) {
-      if (!issue.tasks)
-        continue;
-      log.info('Check issue', issue.id);
+      if (issue.tasks) {
+        log.info('Check issue', issue.id);
 
-      const tasksWithoutId = issue.tasks
-      .filter(task => task.id == null)
-      .map(task => {
-        if (!task.name.startsWith('FE -'))
-          task.name = 'FE - ' + task.name;
-        return task;
-      });
-      // log.info(tasksWithoutId);
-      if (tasksWithoutId.length === 0)
-        continue;
-      await pages[0].goto('https://issue.bkjk-inc.com/browse/' + issue.id, {timeout: 0, waitUntil: 'networkidle2'});
-      const remoteTasks = await listSubtasks(pages[0], issue);
-      issue.ver = await Promise.all((await pages[0].$$('#fixfor-val a'))
-        .map(a => a.getProperty('innerText').then(jh => jh.jsonValue())));
-
-      const toAdd = _.differenceBy(tasksWithoutId, remoteTasks, issue => issue.name);
-      // log.info('Creating new issue\n', toAdd);
-      for (const item of toAdd) {
-        item.ver = issue.ver;
-        await addSubTask(pages[0], item);
+        const tasksWithoutId = issue.tasks
+        .filter(task => task.id == null);
+        // log.info(tasksWithoutId);
+        if (tasksWithoutId.length > 0)
+          await createTasks(issue, tasksWithoutId, pages[0]);
+      }
+      const toAdd = issue['+'];
+      if (toAdd) {
+        const tasks: NewTask[] = [];
+        for (const assignee of Object.keys(toAdd)) {
+          for (const line of toAdd[assignee]) {
+            const [name, desc] = line.split(/[\r\n]+/);
+            const item: NewTask = {
+              name,
+              desc,
+              assignee
+            };
+            tasks.push(item);
+          }
+        }
+        await createTasks(issue, tasks, pages[0]);
       }
     }
   }
-  browser.close();
+  await browser.close();
 }
 
-async function addSubTask(page: pup.Page, task: Issue) {
+async function createTasks(parentIssue: Issue, tasks: NewTask[], page: pup.Page) {
+  await page.goto('https://issue.bkjk-inc.com/browse/' + parentIssue.id,
+    {timeout: 0, waitUntil: 'networkidle2'});
+  const remoteTasks = await listSubtasks(page, parentIssue);
+  parentIssue.ver = await Promise.all((await page.$$('#fixfor-val a'))
+    .map(a => a.getProperty('innerText').then(jh => jh.jsonValue())));
+
+  const isHdecor = parentIssue.id.startsWith('HDECOR');
+  const prefix = isHdecor ? '装贝-FE-' : 'FE - ';
+  tasks.forEach(task => {
+    if (!task.name.startsWith(prefix))
+      task.name = prefix + task.name;
+  });
+  const toAdd = _.differenceBy(tasks, remoteTasks, issue => issue.name);
+  // log.info('Creating new issue\n', toAdd);
+
+  for (const item of toAdd) {
+    item.ver = parentIssue.ver;
+    await _addSubTask(page, item);
+  }
+}
+
+async function _addSubTask(page: pup.Page, task: NewTask) {
   log.info('adding', task);
   const moreBtn = await page.$('#opsbar-operations_more');
   if (moreBtn == null)
@@ -265,12 +292,12 @@ async function addSubTask(page: pup.Page, task: Issue) {
     throw new Error('Adding issue dialog not found');
 
   await dialog.$('input[name=summary]')
-    .then(input => input!.type(task.name.startsWith('FE ') ? task.name : 'FE - ' + task.name));
+    .then(input => input!.type(task.name));
 
   const input = await dialog.$('#fixVersions-textarea');
   await input!.click();
-  log.info('version:', task.ver[0]);
-  await input!.type(task.ver[0], {delay: 100});
+  log.info('version:', task.ver![0]);
+  await input!.type(task.ver![0], {delay: 100});
   await page.keyboard.press('Enter');
   await dialog.$('#description-wiki-edit').then(el => el!.click());
   await page.keyboard.type(task.desc ? task.desc : task.name);
@@ -291,7 +318,7 @@ async function addSubTask(page: pup.Page, task: Issue) {
   const dates = date();
   const formValues = {
     'Start date': dates[0],
-    'End date': endDateBaseOnVersion(task.ver[0]) || dates[1],
+    'End date': endDateBaseOnVersion(task.ver![0]) || dates[1],
     // tslint:disable-next-line: object-literal-key-quotes
     '初始预估': duration,
     剩余的估算: duration,
@@ -339,7 +366,7 @@ export async function listParent() {
 
   const storyMap = new Map<string, Issue>();
   // tslint:disable-next-line: max-line-length
-  await page.goto('https://issue.bkjk-inc.com/issues/?filter=14179&jql=project%20in%20(BYJ%2C%20ZLSZB%2C%20HDECOR%2C%20BCL%2C%20ZLZB%2C%20MF)%20AND%20issuetype%20in%20(subTaskIssueTypes()%2C%20%E4%BB%BB%E5%8A%A1%2C%20%E6%95%85%E4%BA%8B%2C%20%E6%95%85%E9%9A%9C%2C%20%E6%B5%8B%E8%AF%95%E6%95%85%E9%9A%9C%2C%20%E7%94%9F%E4%BA%A7%E6%95%85%E9%9A%9C%2C%20%E8%81%94%E8%B0%83%E6%95%85%E9%9A%9C)%20AND%20status%20in%20(Open%2C%20Reopen%2C%20Developing%2C%20Testing)%20AND%20fixVersion%20in%20(EMPTY%2C%20%22%E8%B4%9D%E5%88%86%E6%9C%9FV1.1.0%2F924%22%2C%20%22%E8%B4%9D%E7%94%A8%E9%87%91v1.10%2F924%22)%20AND%20assignee%20in%20(haiz.chen001%2C%20xiang.zhang%2C%20xue.zou001%2C%20li1.yu)%20ORDER%20BY%20fixVersion%20ASC%2C%20assignee%20ASC%2C%20status%20ASC%2C%20key%20DESC%2C%20updated%20DESC',
+  await page.goto('https://issue.bkjk-inc.com/issues/?filter=14109',
     {waitUntil: 'networkidle2'});
   await domToIssues(page, async rows => {
     for (const [issue, tr] of rows) {
@@ -407,13 +434,140 @@ function endDateBaseOnVersion(ver: string) {
   const verMatch = /[ /](\d{1,2})(\d\d)$/.exec(ver);
   if (verMatch == null || verMatch[1] == null)
     return null;
-  const time = moment();
+  let time = moment();
   time.month(parseInt(verMatch[1], 10) - 1);
   time.date(parseInt(verMatch[2], 10));
-  time.subtract(7, 'days');
+  time.subtract(5, 'days');
+  if (time.isBefore(new Date())) {
+    time = moment();
+    time.add(2, 'days');
+  }
   return time.format('D/MMMM/YY');
 }
 
 export function testDate() {
   console.log(endDateBaseOnVersion('feafa/903'));
+}
+
+export async function syncTask4Parent() {
+  const browser = await launch(false);
+  await browser.newPage();
+  const pages = await browser.pages();
+  const url = 'https://issue.bkjk-inc.com/issues/?filter=14109';
+  await pages[1].goto(url, {timeout: 0, waitUntil: 'networkidle2'});
+
+  const parentSet = new Set<string>();
+
+  await domToIssues(pages[1], async rows => {
+    rows = rows.filter(([task]) => task.status === '开放' || task.status === 'DEVELOPING');
+    parentSet.clear();
+    for (const row of rows) {
+      const [task] = row;
+      // console.log(task);
+      if (task.parentId) {
+        parentSet.add(task.parentId);
+      }
+    }
+    const jql = 'jql=' + encodeURIComponent(`id in (${Array.from(parentSet.values()).join(',')})`);
+    await pages[0].goto('https://issue.bkjk-inc.com/issues/?' + jql);
+    const parentMap = (await domToIssues(pages[0])).reduce((map, issue) => {
+      map.set(issue.id, issue);
+      return map;
+    }, new Map<string, Issue>());
+    for (const [task, tr] of rows) {
+      const parent = parentMap.get(task.parentId!);
+      if (task.parentId && task.ver[0] !== parent!.ver[0]) {
+        console.log('incorrect:', task.id + '-' + task.name, ` ${task.ver[0]} (parent: ${parent!.ver[0]}) `);
+        await (await tr.$$(':scope > .summary .issue-link'))[1].click();
+        const editButton = await pages[1].waitForSelector('#edit-issue', {visible: true});
+        await editButton.click();
+
+        await editIssue(pages[1], tr, {
+          ver: parent!.ver
+        });
+        await pages[1].goBack();
+        await pages[1].waitFor(800);
+      }
+    }
+  });
+  await browser.close();
+}
+
+async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {[key in keyof Issue]?: Issue[key]}) {
+  const dialog = await page.waitForSelector('#edit-issue-dialog', {visible: true});
+
+  if (task.name) {
+    console.log('change name to ', task.name);
+    await dialog.$('input[name=summary]')
+      .then(input => input!.type(task.name!));
+  }
+
+  if (task.ver && task.ver.length > 0) {
+    console.log('change version to ', task.ver[0]);
+    const input = await dialog.$('#fixVersions-textarea');
+    await input!.click();
+    for (let i=0; i<5; i++)
+      await input!.press('Backspace', {delay: 150});
+    // await page.waitFor(1000);
+    await input!.type(task.ver[0], {delay: 100});
+    await page.keyboard.press('Enter');
+  }
+
+  if (task.desc != null) {
+    console.log('change description to', task.desc);
+    await dialog.$('#description-wiki-edit').then(el => el!.click());
+    await page.keyboard.type(task.desc ? task.desc : task.name!);
+  }
+
+  const labels = await dialog.$$('.field-group > label');
+
+  const texts = await Promise.all(
+    labels.map(label => label.getProperty('innerText').then(v => v.jsonValue() as Promise<string>)));
+  const labelMap: {[name: string]: pup.ElementHandle} = {};
+  texts.forEach((text, idx) => labelMap[text.split(/[\n\r\t]+/)[0]] = labels[idx]);
+  // log.info(Object.keys(labelMap));
+
+  // const matchName = /[(（]([0-9.]+[dhDH]?)[)）]\s*$/.exec(task.name);
+  // let duration = matchName ? matchName[1] : '0.5d';
+  // if (!duration.endsWith('d') && !duration.endsWith('h')) {
+  //   duration = duration + 'd';
+  // }
+  const dates = date();
+  const formValues = {
+    // 'Start date': dates[0],
+    'End date': endDateBaseOnVersion(task.ver![0]) || dates[1]
+    // tslint:disable-next-line: object-literal-key-quotes
+    // '初始预估': duration,
+    // 剩余的估算: duration,
+    // 经办人: task.assignee || '刘晶'
+  };
+
+  for (const name of Object.keys(labelMap)) {
+    if (!_.has(formValues, name))
+      continue;
+    await labelMap[name].click({delay: 50});
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const inputId = '#' + await page.evaluate(label => label.getAttribute('for'), labelMap[name]);
+    console.log(inputId);
+    const value = await page.$eval(inputId, input => (input as HTMLInputElement).value);
+    console.log('Current %s:', name, value);
+    if (value) {
+      for (let i = 0, l = value.length + 2; i < l; i++)
+        page.keyboard.press('ArrowRight', {delay: 50});
+      for (let i = 0, l = value.length + 5; i < l; i++)
+        await page.keyboard.press('Backspace', {delay: 50});
+    }
+
+    await page.keyboard.type(formValues[name], {delay: 50});
+    // if (name === '经办人') {
+    //   await new Promise(resolve => setTimeout(resolve, 500)); // wait for JIRA searching user
+    //   await page.keyboard.press('Enter', {delay: 50});
+    // }
+  }
+  // await (await dialog.$('.buttons > .cancel'))!.click();
+  await (await dialog.$('#edit-issue-submit'))!.click();
+  await page.waitFor('#edit-issue-dialog', {hidden: true});
+
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  await page.waitFor(800);
 }
