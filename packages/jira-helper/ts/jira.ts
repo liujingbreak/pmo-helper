@@ -4,8 +4,9 @@ import {launch} from './puppeteer';
 import * as jsYaml from 'js-yaml';
 import _ from 'lodash';
 import pup from 'puppeteer-core';
-import moment from 'moment';
+import moment, {Moment} from 'moment';
 import api from '__api';
+import util from 'util';
 moment.locale('zh-cn');
 const log = require('log4js').getLogger('jira-helper');
 
@@ -19,6 +20,7 @@ export interface Issue {
   assignee: string;
   tasks?: Issue[];
   parentId?: string;
+  endDate?: string;
   est?: number; // estimation duration
   intEst?: number; // API integration estimation duration
 
@@ -63,16 +65,29 @@ export async function domToIssues(page: pup.Page,
   async function fetchPage() {
     const trPairs: [Issue, pup.ElementHandle][] = [];
     const table = await page.$('#issuetable');
+    const cellTitles = await getCellTitles(table!);
+    log.info('List headers:',cellTitles.join(', '));
     const done = await Promise.all(
       (await table!.$$(':scope > tbody > tr')).map(async row => {
+
+        // Fill title2ValueMap and clsMap
         const clsMap = await row.$$eval(':scope > td', els => {
           const colMap: {[k: string]: string} = {};
-          els.forEach(el => {
-            colMap[el.className] = (el as HTMLElement).innerText;
-          });
+          for (let i = 0, l = els.length; i < l; i++) {
+            const el = els[i];
+            const value = (el as HTMLElement).innerText;
+            colMap[el.className] = value;
+          }
           return colMap;
         });
 
+        const title2ValueMap: {[title: string]: string} = {};
+
+        (await Promise.all((await row.$$(':scope > td')).map(async td => {
+          return (await td.getProperty('innerText')).jsonValue();
+        }))).forEach((value, i) => title2ValueMap[cellTitles[i++]] = value);
+
+        // log.info(util.inspect(title2ValueMap));
         // log.info(clsMap);
         const trimedMap: {[k: string]: string} = {};
         for (const key of Object.keys(clsMap)) {
@@ -84,7 +99,8 @@ export async function domToIssues(page: pup.Page,
           ver: [trimedMap.fixVersions],
           status: trimedMap.status,
           assignee: trimedMap.assignee,
-          id: trimedMap.issuekey
+          id: trimedMap.issuekey,
+          endDate: title2ValueMap['End date']
         };
         if (onEachPage)
           trPairs.push([issue, row]);
@@ -410,7 +426,7 @@ export async function listParent() {
 function date(): [string, string] {
   const time = moment();
   // console.log(time.format('D/MMMM/YY'), time.add(21, 'days').format('D/MMMM/YY'));
-  return [time.format('D/MMMM/YY'), time.add(21, 'days').format('D/MMMM/YY')];
+  return [time.format('D/MMMM/YY'), time.add(30, 'days').format('D/MMMM/YY')];
 }
 
 function estimationToNum(estimationStr: string) {
@@ -437,19 +453,23 @@ function endDateBaseOnVersion(ver: string) {
   let time = moment();
   time.month(parseInt(verMatch[1], 10) - 1);
   time.date(parseInt(verMatch[2], 10));
-  time.subtract(5, 'days');
+  // time.subtract(5, 'days');
   if (time.isBefore(new Date())) {
     time = moment();
-    time.add(2, 'days');
+    time.add(20, 'days');
   }
   return time.format('D/MMMM/YY');
 }
 
 export function testDate() {
   console.log(endDateBaseOnVersion('feafa/903'));
+  console.log(moment('15/十月/19', 'D/MMMM/YY').toDate());
 }
 
-export async function syncTask4Parent() {
+/**
+ * Check README.md for command line arguments
+ */
+export async function checkTask() {
   const browser = await launch(false);
   await browser.newPage();
   const pages = await browser.pages();
@@ -457,6 +477,8 @@ export async function syncTask4Parent() {
   await pages[1].goto(url, {timeout: 0, waitUntil: 'networkidle2'});
 
   const parentSet = new Set<string>();
+  const compareToDate = moment().add(api.argv.endInDays || 3, 'days');
+  log.info('Comparent to end date:', compareToDate.format('YYYY/M/D'));
 
   await domToIssues(pages[1], async rows => {
     rows = rows.filter(([task]) => task.status === '开放' || task.status === 'DEVELOPING');
@@ -475,22 +497,36 @@ export async function syncTask4Parent() {
       return map;
     }, new Map<string, Issue>());
     for (const [task, tr] of rows) {
+      const endDateObj = moment(task.endDate, 'D/MMMM/YY');
+      if (task.endDate && endDateObj.isBefore(compareToDate)) {
+        // tslint:disable-next-line:max-line-length
+        log.warn(`End date:${task.endDate} "${displayIssue(task)}"`);
+        if (api.argv.addDays) {
+          await _editTr(pages[1], tr, {
+            endDate: endDateObj.add(parseInt(api.argv.addDays, 10), 'days').format('D/MMMM/YY')
+          });
+        }
+      }
+
       const parent = parentMap.get(task.parentId!);
       if (task.parentId && task.ver[0] !== parent!.ver[0]) {
-        console.log('incorrect:', task.id + '-' + task.name, ` ${task.ver[0]} (parent: ${parent!.ver[0]}) `);
-        await (await tr.$$(':scope > .summary .issue-link'))[1].click();
-        const editButton = await pages[1].waitForSelector('#edit-issue', {visible: true});
-        await editButton.click();
-
-        await editIssue(pages[1], tr, {
-          ver: parent!.ver
-        });
-        await pages[1].goBack();
-        await pages[1].waitFor(800);
+        log.warn(`incorrect: "${displayIssue(task)}"\n  version "${task.ver[0]}" against parent: "${parent!.ver[0]}" `);
+        if (api.argv.updateVersion) {
+          await _editTr(pages[1], tr, {ver: parent!.ver});
+        }
       }
     }
   });
   await browser.close();
+}
+
+async function _editTr(page: pup.Page, tr: pup.ElementHandle, updateTask: {[key in keyof Issue]?: Issue[key]}) {
+  await (await tr.$$(':scope > .summary .issue-link'))[1].click();
+  const editButton = await page.waitForSelector('#edit-issue', {visible: true});
+  await editButton.click();
+  await editIssue(page, tr, updateTask);
+  await page.goBack();
+  await page.waitFor(800);
 }
 
 async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {[key in keyof Issue]?: Issue[key]}) {
@@ -503,7 +539,7 @@ async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {
   }
 
   if (task.ver && task.ver.length > 0) {
-    console.log('change version to ', task.ver[0]);
+    console.log('  change version to ', task.ver[0]);
     const input = await dialog.$('#fixVersions-textarea');
     await input!.click();
     for (let i=0; i<5; i++)
@@ -514,7 +550,7 @@ async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {
   }
 
   if (task.desc != null) {
-    console.log('change description to', task.desc);
+    console.log('  change description to', task.desc);
     await dialog.$('#description-wiki-edit').then(el => el!.click());
     await page.keyboard.type(task.desc ? task.desc : task.name!);
   }
@@ -525,22 +561,15 @@ async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {
     labels.map(label => label.getProperty('innerText').then(v => v.jsonValue() as Promise<string>)));
   const labelMap: {[name: string]: pup.ElementHandle} = {};
   texts.forEach((text, idx) => labelMap[text.split(/[\n\r\t]+/)[0]] = labels[idx]);
-  // log.info(Object.keys(labelMap));
 
-  // const matchName = /[(（]([0-9.]+[dhDH]?)[)）]\s*$/.exec(task.name);
-  // let duration = matchName ? matchName[1] : '0.5d';
-  // if (!duration.endsWith('d') && !duration.endsWith('h')) {
-  //   duration = duration + 'd';
-  // }
   const dates = date();
-  const formValues = {
-    // 'Start date': dates[0],
-    'End date': endDateBaseOnVersion(task.ver![0]) || dates[1]
-    // tslint:disable-next-line: object-literal-key-quotes
-    // '初始预估': duration,
-    // 剩余的估算: duration,
-    // 经办人: task.assignee || '刘晶'
-  };
+  const formValues = {};
+
+  if (task.ver && task.ver.length > 0)
+    formValues['End date'] = endDateBaseOnVersion(task.ver![0]) || dates[1];
+
+  if (task.endDate)
+    formValues['End date'] = task.endDate;
 
   for (const name of Object.keys(labelMap)) {
     if (!_.has(formValues, name))
@@ -548,26 +577,40 @@ async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {
     await labelMap[name].click({delay: 50});
     await new Promise(resolve => setTimeout(resolve, 200));
     const inputId = '#' + await page.evaluate(label => label.getAttribute('for'), labelMap[name]);
-    console.log(inputId);
+    // console.log(inputId);
     const value = await page.$eval(inputId, input => (input as HTMLInputElement).value);
-    console.log('Current %s:', name, value);
+
     if (value) {
       for (let i = 0, l = value.length + 2; i < l; i++)
         page.keyboard.press('ArrowRight', {delay: 50});
       for (let i = 0, l = value.length + 5; i < l; i++)
         await page.keyboard.press('Backspace', {delay: 50});
     }
-
+    console.log('%s: %s -> %s', name, value, formValues[name]);
     await page.keyboard.type(formValues[name], {delay: 50});
     // if (name === '经办人') {
     //   await new Promise(resolve => setTimeout(resolve, 500)); // wait for JIRA searching user
     //   await page.keyboard.press('Enter', {delay: 50});
     // }
   }
-  // await (await dialog.$('.buttons > .cancel'))!.click();
   await (await dialog.$('#edit-issue-submit'))!.click();
   await page.waitFor('#edit-issue-dialog', {hidden: true});
 
   await new Promise(resolve => setTimeout(resolve, 1000));
   await page.waitFor(800);
+}
+
+async function getCellTitles(issueTable: pup.ElementHandle<Element>) {
+  const ths = await issueTable.$$(':scope > thead th');
+
+  const titles = await Promise.all(ths.map(async th => {
+    const header = await th.$(':scope > span[title]');
+    if (header) {
+      return (await header.getProperty('innerText')).jsonValue() as Promise<string>;
+    } else {
+      return (await th.getProperty('innerText')).jsonValue() as Promise<string>;
+    }
+  }));
+
+  return titles.map(title => title.trim());
 }
