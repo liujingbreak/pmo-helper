@@ -1,12 +1,11 @@
 // tslint:disable no-console
 import fs from 'fs';
-import {launch} from './puppeteer';
 import * as jsYaml from 'js-yaml';
 import _ from 'lodash';
+import moment from 'moment';
 import pup from 'puppeteer-core';
-import moment, {Moment} from 'moment';
 import api from '__api';
-import util from 'util';
+import { launch } from './puppeteer';
 moment.locale('zh-cn');
 const log = require('log4js').getLogger('jira-helper');
 
@@ -210,7 +209,8 @@ export async function listStory(
     }
   }
 
-  const grouped = _.groupBy(issues, issue => issue.id.slice(0, issue.id.indexOf('-')));
+  // const grouped = _.groupBy(issues, issue => issue.id.slice(0, issue.id.indexOf('-')));
+  const grouped = _.groupBy(issues, issue => issue.ver && issue.ver.length > 0 ? issue.ver[0] : 'No version');
 
   fs.writeFileSync('dist/list-story.yaml', jsYaml.safeDump(grouped));
   log.info('Result has been written to dist/list-story.yaml');
