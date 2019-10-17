@@ -1,0 +1,8 @@
+{
+  "name": "@dr/pmo-helper-recipe",
+  "version": "0.1.0",
+  "description": "Component group: pmo-helper-recipe",
+  "dependencies": {
+    "pmo-helper": "1.0.0"
+}
+}
