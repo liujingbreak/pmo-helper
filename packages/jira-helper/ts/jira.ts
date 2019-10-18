@@ -245,7 +245,8 @@ export async function sync() {
         const tasks: NewTask[] = [];
         for (const assignee of Object.keys(toAdd)) {
           for (const line of toAdd[assignee]) {
-            const [name, desc] = line.split(/[\r\n]+/);
+            const [name] = line.split(/[\r\n]+/);
+            const desc = line;
             const item: NewTask = {
               name,
               desc,

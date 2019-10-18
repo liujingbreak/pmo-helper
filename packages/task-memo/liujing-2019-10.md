@@ -1,4 +1,11 @@
 
+### 代码行数统计
+
+git log  --format='%aN' | sort -u | while read name; do echo -en "$name\t"; git log --author="$name" --pretty=tformat:  --since ==2019-9-1 --until=2019-9-30 --numstat | awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines:, %s, removed lines, %s, total lines, %s\n", add, subs, loc }' -; done
+
+git log --format='%aN' | sort -u | while read name; do echo -en "$name\t"; git log --author="$name" --pretty=tformat:  --since ==2019-9-1 --until=2019-9-30 --numstat -- projects/byj | awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines:, %s, removed lines, %s, total lines, %s\n", add, subs, loc }' -; done
+
+
 ### 下线3个CFL dalmore应用
 #### michelangelostaticlease
 Has been migrated to michelangelostaticleasesh
