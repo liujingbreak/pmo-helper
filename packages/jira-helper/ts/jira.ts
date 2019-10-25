@@ -276,7 +276,7 @@ async function createTasks(parentIssue: Issue, tasks: NewTask[], page: pup.Page)
       task.name = prefix + task.name;
   });
   const toAdd = _.differenceBy(tasks, remoteTasks, issue => issue.name);
-  // log.info('Creating new issue\n', toAdd);
+  log.info('Creating new issue\n', toAdd);
 
   for (const item of toAdd) {
     item.ver = parentIssue.ver;
