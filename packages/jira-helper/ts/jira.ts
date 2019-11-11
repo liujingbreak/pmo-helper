@@ -510,10 +510,35 @@ export async function checkTask() {
       }
 
       const parent = parentMap.get(task.parentId!);
-      if (task.parentId && task.ver[0] !== parent!.ver[0]) {
-        log.warn(`incorrect: "${displayIssue(task)}"\n  version "${task.ver[0]}" against parent: "${parent!.ver[0]}" `);
-        if (api.argv.updateVersion) {
-          await _editTr(pages[1], tr, {ver: parent!.ver});
+      if (parent) {
+        const parentEndDateMom = moment(parent.endDate, 'D/MMMM/YY');
+        const notSameVersion = task.ver[0] !== parent!.ver[0];
+        const earlierEndDate = endDateObj.isBefore(parentEndDateMom);
+        const verDate = endDateBaseOnVersion(parent.ver[0]);
+
+        const updateToTask: Parameters<typeof _editTr>[2] = {};
+        let needUpdate = false;
+
+        if (notSameVersion) {
+          needUpdate = true;
+          // tslint:disable-next-line: max-line-length
+          log.warn(`Task "${displayIssue(task)}"\n  version "${task.ver[0]}" doesn't match parent "${parent.ver[0]}"\n`);
+          updateToTask.ver = parent.ver;
+        }
+        if (verDate && task.endDate !== verDate) {
+          needUpdate = true;
+          updateToTask.endDate = verDate;
+          // tslint:disable-next-line: max-line-length
+          log.warn(`Task "${displayIssue(task)}"\n  end date "${task.endDate}" doesn't match parent version ${parent.ver[0]} - ${verDate}`);
+        } else if (earlierEndDate) {
+          needUpdate = true;
+          updateToTask.endDate = parent.endDate;
+          // tslint:disable-next-line: max-line-length
+          log.warn(`Task "${displayIssue(task)}"\n  end date "${task.endDate}" is earlier than parent "${parent.endDate}"`);
+        }
+
+        if (needUpdate && api.argv.updateVersion) {
+          await _editTr(pages[1], tr, updateToTask);
         }
       }
     }
@@ -596,9 +621,7 @@ async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {
   }
   await (await dialog.$('#edit-issue-submit'))!.click();
   await page.waitFor('#edit-issue-dialog', {hidden: true});
-
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  await page.waitFor(800);
+  await page.waitFor(1000);
 }
 
 async function getCellTitles(issueTable: pup.ElementHandle<Element>) {
