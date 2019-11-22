@@ -84,7 +84,7 @@ export async function domToIssues(page: pup.Page,
 
         (await Promise.all((await row.$$(':scope > td')).map(async td => {
           return (await td.getProperty('innerText')).jsonValue();
-        }))).forEach((value, i) => title2ValueMap[cellTitles[i++]] = value);
+        }))).forEach((value, i) => title2ValueMap[cellTitles[i++]] = value as string);
 
         // log.info(util.inspect(title2ValueMap));
         // log.info(clsMap);
@@ -107,16 +107,16 @@ export async function domToIssues(page: pup.Page,
         // assign issue name and issue parent id
         const links = await row.$$(':scope > td.summary a.issue-link');
         if (links.length > 1) {
-          const parentId: string = await (await links[0].getProperty('innerText')).jsonValue();
+          const parentId: string = await (await links[0].getProperty('innerText')).jsonValue() as string;
           issue.parentId = parentId;
-          issue.name = await (await links[1].getProperty('innerText')).jsonValue();
+          issue.name = await (await links[1].getProperty('innerText')).jsonValue() as string;
         } else {
-          issue.name = await (await links[0].getProperty('innerText')).jsonValue();
+          issue.name = await (await links[0].getProperty('innerText')).jsonValue() as string;
         }
 
         issue.ver = await Promise.all(
           (await row.$$(':scope > td.fixVersions > *'))
-          .map(async a => (await a.getProperty('innerText')).jsonValue())
+          .map(async a => (await a.getProperty('innerText')).jsonValue() as Promise<string>)
         );
 
         if (trimedMap.aggregatetimeestimate) {
@@ -267,7 +267,7 @@ async function createTasks(parentIssue: Issue, tasks: NewTask[], page: pup.Page)
     {timeout: 0, waitUntil: 'networkidle2'});
   const remoteTasks = await listSubtasks(page, parentIssue);
   parentIssue.ver = await Promise.all((await page.$$('#fixfor-val a'))
-    .map(a => a.getProperty('innerText').then(jh => jh.jsonValue())));
+    .map(a => a.getProperty('innerText').then(jh => jh.jsonValue() as Promise<string>)));
 
   const isHdecor = parentIssue.id.startsWith('HDECOR');
   const prefix = isHdecor ? '装贝-FE-' : 'FE - ';
@@ -296,7 +296,7 @@ async function _addSubTask(page: pup.Page, task: NewTask) {
 
   const menuItems = await page.$$('#opsbar-operations_more_drop .trigger-label');
   for (const item of menuItems) {
-    const text: string = await item.getProperty('innerHTML').then(jh => jh.jsonValue());
+    const text: string = await item.getProperty('innerHTML').then(jh => jh.jsonValue() as Promise<string>);
     if (text === '创建子任务') {
       await item.click();
       break;
