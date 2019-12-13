@@ -451,13 +451,12 @@ function endDateBaseOnVersion(ver: string) {
   const verMatch = /[ /](\d{1,2})(\d\d)$/.exec(ver);
   if (verMatch == null || verMatch[1] == null)
     return null;
-  let time = moment();
+  const time = moment();
   time.month(parseInt(verMatch[1], 10) - 1);
   time.date(parseInt(verMatch[2], 10));
   // time.subtract(5, 'days');
   if (time.isBefore(new Date())) {
-    time = moment();
-    time.add(20, 'days');
+    time.add(1, 'years');
   }
   return time.format('D/MMMM/YY');
 }
