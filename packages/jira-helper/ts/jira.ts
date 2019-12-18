@@ -64,7 +64,8 @@ export async function domToIssues(page: pup.Page,
   async function fetchPage() {
     const trPairs: [Issue, pup.ElementHandle][] = [];
     const table = await page.$('#issuetable');
-    const cellTitles = await getCellTitles(table!);
+    if (table == null) return [] as Issue[];
+    const cellTitles = await getCellTitles(table);
     log.info('List headers:',cellTitles.join(', '));
     const done = await Promise.all(
       (await table!.$$(':scope > tbody > tr')).map(async row => {
@@ -623,7 +624,9 @@ async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {
   await page.waitFor(1000);
 }
 
-async function getCellTitles(issueTable: pup.ElementHandle<Element>) {
+async function getCellTitles(issueTable: pup.ElementHandle<Element> | null) {
+  if (issueTable == null)
+    return [];
   const ths = await issueTable.$$(':scope > thead th');
 
   const titles = await Promise.all(ths.map(async th => {
