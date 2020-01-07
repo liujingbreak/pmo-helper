@@ -37,7 +37,7 @@ export async function login() {
 
 // export await function waitForCondition()
 
-export async function domToIssues(page: pup.Page,
+async function domToIssues(page: pup.Page,
   onEachPage?: (trPairs: [Issue, pup.ElementHandle][]) => Promise<void>
 ) {
   let issues: Issue[] = [];
@@ -287,22 +287,7 @@ async function createTasks(parentIssue: Issue, tasks: NewTask[], page: pup.Page)
 
 async function _addSubTask(page: pup.Page, task: NewTask) {
   log.info('adding', task);
-  const moreBtn = await page.$('#opsbar-operations_more');
-  if (moreBtn == null)
-    throw new Error('#opsbar-operations_more not found in page'); // click 更多
-  // log.warn(await moreBtn.getProperty('innerText').then(jh => jh.jsonValue()));
-
-  await moreBtn!.click({delay: 100});
-  await page.waitFor('#opsbar-operations_more_drop', {visible: true});
-
-  const menuItems = await page.$$('#opsbar-operations_more_drop .trigger-label');
-  for (const item of menuItems) {
-    const text: string = await item.getProperty('innerHTML').then(jh => jh.jsonValue() as Promise<string>);
-    if (text === '创建子任务') {
-      await item.click();
-      break;
-    }
-  }
+  await clickMoreButton(page, '创建子任务');
 
   await page.waitFor('#create-subtask-dialog', {visible: true});
   const dialog = await page.$('#create-subtask-dialog');
@@ -491,12 +476,9 @@ export async function checkTask() {
         parentSet.add(task.parentId);
       }
     }
-    const jql = 'jql=' + encodeURIComponent(`id in (${Array.from(parentSet.values()).join(',')})`);
-    await pages[0].goto('https://issue.bkjk-inc.com/issues/?' + jql);
-    const parentMap = (await domToIssues(pages[0])).reduce((map, issue) => {
-      map.set(issue.id, issue);
-      return map;
-    }, new Map<string, Issue>());
+
+    const parentMap = await listIssueByIds(pages[0], Array.from(parentSet.values()));
+
     for (const [task, tr] of rows) {
       const endDateObj = moment(task.endDate, 'D/MMMM/YY');
       if (task.endDate && endDateObj.isBefore(compareToDate)) {
@@ -548,14 +530,14 @@ export async function checkTask() {
 
 async function _editTr(page: pup.Page, tr: pup.ElementHandle, updateTask: {[key in keyof Issue]?: Issue[key]}) {
   await (await tr.$$(':scope > .summary .issue-link'))[1].click();
-  const editButton = await page.waitForSelector('#edit-issue', {visible: true});
-  await editButton.click();
-  await editIssue(page, tr, updateTask);
+  await editIssue(page, updateTask);
   await page.goBack();
   await page.waitFor(800);
 }
 
-async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {[key in keyof Issue]?: Issue[key]}) {
+async function editIssue(page: pup.Page, task: Partial<Issue>) {
+  const editButton = await page.waitForSelector('#edit-issue', {visible: true});
+  await editButton.click();
   const dialog = await page.waitForSelector('#edit-issue-dialog', {visible: true});
 
   if (task.name) {
@@ -608,7 +590,7 @@ async function editIssue(page: pup.Page, tr: pup.ElementHandle<Element>, task: {
 
     if (value) {
       for (let i = 0, l = value.length + 2; i < l; i++)
-        page.keyboard.press('ArrowRight', {delay: 50});
+        await page.keyboard.press('ArrowRight', {delay: 50});
       for (let i = 0, l = value.length + 5; i < l; i++)
         await page.keyboard.press('Backspace', {delay: 50});
     }
@@ -640,3 +622,128 @@ async function getCellTitles(issueTable: pup.ElementHandle<Element> | null) {
 
   return titles.map(title => title.trim());
 }
+
+async function listIssueByIds(page: pup.Page, ids: string[]) {
+  const jql = 'jql=' + encodeURIComponent(`id in (${ids.join(',')})`);
+  await page.goto('https://issue.bkjk-inc.com/issues/?' + jql);
+  const issueMap = (await domToIssues(page)).reduce((map, issue) => {
+    map.set(issue.id, issue);
+    return map;
+  }, new Map<string, Issue>());
+  return issueMap;
+}
+
+export async function moveIssues(newParentId: string, ...movedIssueIds: string[]) {
+  const browser = await launch();
+  const page = (await browser.pages())[0];
+
+  const parentIssueMap = await listIssueByIds(page, [newParentId]);
+  const parentIssue = parentIssueMap.values().next().value as Issue;
+
+  console.log(parentIssue);
+
+  for (const id of movedIssueIds) {
+    const url = 'https://issue.bkjk-inc.com/browse/' + id;
+    await page.goto(url, {timeout: 0, waitUntil: 'networkidle2'});
+
+    await page.waitFor('#parent_issue_summary', {visible: true});
+    const origParentId = await page.$eval('#parent_issue_summary', el => el.getAttribute('data-issue-key'));
+    if (origParentId !== parentIssue.id) {
+
+      await clickMoreButton(page, '移动');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // const el = await page.$('html');
+      // const html = (await el!.$eval(':scope > body', el => el.innerHTML));
+      // console.log(html);
+
+      await page.waitFor('#move\\.subtask\\.parent\\.operation\\.name_id', {visible: true});
+      await page.click('#move\\.subtask\\.parent\\.operation\\.name_id', {delay: 200});
+      await new Promise(resolve => setTimeout(resolve, 200));
+      await page.click('#next_submit', {delay: 200});
+      await page.waitFor('input[name=parentIssue]', {visible: true});
+      const input = await page.$('input[name=parentIssue]');
+      await input!.click();
+      await page.keyboard.sendCharacter(newParentId);
+      await page.click('#reparent_submit', {delay: 200});
+      while (true) {
+        if (page.url().startsWith(url))
+          break;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      console.log(`${id} is moved to ${newParentId}`);
+    }
+    await editIssue(page, {endDate: parentIssue.endDate, ver: parentIssue.ver});
+    console.log(`${id} is updated`);
+  }
+  await browser.close();
+}
+
+export async function assignIssues(assignee: string, ...issueIds: string[]) {
+  const browser = await launch();
+  const page = (await browser.pages())[0];
+  const jql = 'jql=' + encodeURIComponent(`id in (${issueIds.join(',')})`);
+  await page.goto('https://issue.bkjk-inc.com/issues/?' + jql);
+  await domToIssues(page, async pairs => {
+    for (const [issue, el] of pairs) {
+      if (issue.assignee === assignee)
+        continue;
+      const links = await el.$$(':scope > td > .issue-link');
+      if (links && links.length > 0) {
+        const link = links[links.length - 1];
+
+        await link.click({delay: 300});
+        await page.waitFor('#assign-issue', {visible: true});
+        await page.click('#assign-issue', {delay: 300});
+        await page.waitFor('#assign-dialog', {visible: true});
+        const input = await page.$('#assignee-field');
+        await editInputText(page, input, assignee);
+        await page.waitFor('body > .ajs-layer', {visible: true});
+        await page.keyboard.press('Enter', {delay: 100});
+        await page.click('#assign-issue-submit', {delay: 100});
+        await page.waitFor('#assign-dialog', {hidden: true});
+        // await new Promise(resolve => setTimeout(resolve, 500));
+        await page.goBack({waitUntil: 'networkidle0'});
+      }
+    }
+  });
+
+
+  await browser.close();
+}
+
+async function clickMoreButton(page: pup.Page, button: string) {
+  const moreBtn = await page.$('#opsbar-operations_more');
+  if (moreBtn == null)
+    throw new Error('#opsbar-operations_more not found in page'); // click 更多
+
+  await moreBtn!.click({delay: 100});
+  await page.waitFor('#opsbar-operations_more_drop', {visible: true});
+
+  const menuItems = await page.$$('#opsbar-operations_more_drop .trigger-label');
+  for (const item of menuItems) {
+    const text: string = await item.getProperty('innerHTML').then(jh => jh.jsonValue() as Promise<string>);
+    if (text === button) {
+      await item.click();
+      break;
+    }
+  }
+}
+
+type ExtractPromise<V> = V extends Promise<infer E> ? E : unknown;
+
+async function editInputText(page: pup.Page, inputEl: ExtractPromise<ReturnType<pup.Page['$']>>, newValue: string) {
+  if (inputEl == null)
+    return;
+  const value = await inputEl.evaluate((input: HTMLInputElement) => input.value);
+  await inputEl.click({delay: 300});
+  if (value) {
+    for (let i = 0, l = value.length + 2; i < l; i++)
+      await page.keyboard.press('ArrowRight', {delay: 50});
+    for (let i = 0, l = value.length + 3; i < l; i++)
+      await page.keyboard.press('Backspace', {delay: 50});
+  }
+
+  await page.keyboard.type(newValue, {delay: 50});
+}
+

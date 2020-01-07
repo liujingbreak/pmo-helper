@@ -61,18 +61,30 @@ drcp run ts/jira.ts#listStory jira-helper [--include BCL[,BYJ...]] [--include-ve
 
  1. Query tasks for ending in specific days, and whose version does not match parent's version
    ```
+   drcp run jira-helper/ts/jira.ts#checkTask
     --end-in-days <num of days>
    ```
  
  2. Query and edit tasks to change version and end-date to match parent
     ```
+    drcp run jira-helper/ts/jira.ts#checkTask
     --update-version
     ```
  
  3. Query and edit tasks to postone end-date
     ```
+    drcp run jira-helper/ts/jira.ts#checkTask
     --end-in-days <num of days> --add-days <num of days>
     ```
  4. Query and edit tasks to close tasks in status "testing"
    TBD.
 
+
+## Move sub tasks to another parent issue
+```bash
+drcp run jira-helper/ts/jira.ts#moveIssues <parent id> <sub task id> <sub task id...>
+```
+## Assign multiple tasks to someone
+```bash
+drcp run jira-helper/ts/jira.ts#assignIssues <assignee name> <issue id> <issue id...>
+```
