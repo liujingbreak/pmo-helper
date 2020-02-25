@@ -9,6 +9,7 @@ import { launch } from './puppeteer';
 moment.locale('zh-cn');
 const log = require('log4js').getLogger('jira-helper');
 
+const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
 export interface Issue {
   brief?: string;
   name: string;
@@ -329,6 +330,16 @@ async function _addSubTask(page: pup.Page, task: NewTask) {
   };
 
   for (const name of Object.keys(labelMap)) {
+    if (name.indexOf('模块') >= 0 && !_.has(formValues, name)) {
+      const id = (await labelMap[name].evaluate(el => el.getAttribute('for')));
+      const inputEl = await page.$('#' + id);
+      const value = await inputEl!.evaluate(el => (el as HTMLTextAreaElement).value);
+      if (value.trim().length === 0) {
+        await inputEl!.click();
+        await page.keyboard.type(DEFAULT_TASK_MODULE_VALUE, {delay: 50});
+      }
+      continue;
+    }
     if (!_.has(formValues, name))
       continue;
     await labelMap[name].click({delay: 50});
@@ -724,6 +735,7 @@ async function clickMoreButton(page: pup.Page, button: string) {
   for (const item of menuItems) {
     const text: string = await item.getProperty('innerHTML').then(jh => jh.jsonValue() as Promise<string>);
     if (text === button) {
+      await new Promise(resolve => setTimeout(resolve, 200));
       await item.click();
       break;
     }
