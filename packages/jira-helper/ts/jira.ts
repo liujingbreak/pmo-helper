@@ -445,9 +445,10 @@ function displayIssue(issue: Issue): string {
 }
 
 function endDateBaseOnVersion(ver: string) {
-  const verMatch = /[ /](\d{1,2})(\d\d)$/.exec(ver);
-  if (verMatch == null || verMatch[1] == null)
+  const verMatch = /(\d{1,2})(\d\d)$/.exec(ver);
+  if (verMatch == null || verMatch[1] == null) {
     return null;
+  }
   const time = moment();
   time.month(parseInt(verMatch[1], 10) - 1);
   time.date(parseInt(verMatch[2], 10));
