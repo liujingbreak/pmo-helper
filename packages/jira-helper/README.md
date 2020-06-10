@@ -8,7 +8,7 @@ Login from opened Browser.
 
 2. List stories and top level tasks
 ```bash
-drcp run ts/jira.ts#listStory jira-helper [--include BCL[,BYJ...]] [--include-version 1016,1015] [--headless]
+drcp run ts/jira.ts#listStory jira-helper -- [--include BCL[,BYJ...]] [--include-version 1016,1015] [--headless]
 ```
 
 3. Add sub tasks
@@ -53,7 +53,7 @@ drcp run ts/jira.ts#listStory jira-helper [--include BCL[,BYJ...]] [--include-ve
    ```
      - 3. Run
      ```bash
-     drcp run ts/jira.ts#sync jira-helper --file dist/list-story.yaml
+     drcp run ts/jira.ts#sync jira-helper -- --file dist/list-story.yaml
      ``` 
      You may repeatly run this command after changing yaml file, it will not create duplicate tasks (distinguish by task "name")
 
@@ -61,19 +61,19 @@ drcp run ts/jira.ts#listStory jira-helper [--include BCL[,BYJ...]] [--include-ve
 
  1. Query tasks for ending in specific days, and whose version does not match parent's version
    ```
-   drcp run jira-helper/ts/jira.ts#checkTask
+   drcp run jira-helper/ts/jira.ts#checkTask --
     --end-in-days <num of days>
    ```
  
  2. Query and edit tasks to change version and end-date to match parent
     ```
-    drcp run jira-helper/ts/jira.ts#checkTask
+    drcp run jira-helper/ts/jira.ts#checkTask --
     --update-version
     ```
  
  3. Query and edit tasks to postone end-date
     ```
-    drcp run jira-helper/ts/jira.ts#checkTask
+    drcp run jira-helper/ts/jira.ts#checkTask --
     --end-in-days <num of days> --add-days <num of days>
     ```
  4. Query and edit tasks to close tasks in status "testing"

@@ -9,6 +9,16 @@
   },
   "author": "Liu Jing",
   "license": "MIT",
+  "dependencies": {
+    "js-yaml": "3.14.0",
+    "@types/js-yaml": "3.12.5",
+    "lodash": "^4.17.19",
+    "@types/lodash": "^4.14.158",
+    "chalk": "4.1.0",
+
+    "moment": "^2.24.0",
+    "@types/moment": "^2.13.0"
+  },
   "peerDependencies": {
     "puppeteer-core": "^1.19.0",
     "@types/puppeteer-core": "^1.9.0",

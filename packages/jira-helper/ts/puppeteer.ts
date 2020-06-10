@@ -36,7 +36,7 @@ export async function launch(headless = false): Promise<pup.Browser> {
   const browser = await pup.launch({
     headless,
     executablePath: executablePath!,
-    userDataDir: process.cwd() + '/dist/puppeteer-temp',
+    userDataDir: api.config.resolve('destDir', 'puppeteer-temp'),
     ignoreHTTPSErrors: true,
     defaultViewport: {width: 1236, height: 768}
   });

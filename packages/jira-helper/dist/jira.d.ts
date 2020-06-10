@@ -23,6 +23,6 @@ export declare function testDate(): void;
 /**
  * Check README.md for command line arguments
  */
-export declare function checkTask(): Promise<void>;
+export declare function checkTask(updateVersion?: boolean): Promise<void>;
 export declare function moveIssues(newParentId: string, ...movedIssueIds: string[]): Promise<void>;
 export declare function assignIssues(assignee: string, ...issueIds: string[]): Promise<void>;

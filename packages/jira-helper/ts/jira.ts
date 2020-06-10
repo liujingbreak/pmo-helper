@@ -6,8 +6,11 @@ import moment from 'moment';
 import pup from 'puppeteer-core';
 import api from '__api';
 import { launch } from './puppeteer';
+import chalk from 'chalk';
+import log4js from 'log4js';
+
 moment.locale('zh-cn');
-const log = require('log4js').getLogger('jira-helper');
+const log = log4js.getLogger('jira-helper');
 
 const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
 export interface Issue {
@@ -38,7 +41,7 @@ export async function login() {
 
 // export await function waitForCondition()
 
-async function domToIssues(page: pup.Page,
+export async function domToIssues(page: pup.Page,
   onEachPage?: (trPairs: [Issue, pup.ElementHandle][]) => Promise<void>
 ) {
   let issues: Issue[] = [];
@@ -214,7 +217,7 @@ export async function listStory(
   // const grouped = _.groupBy(issues, issue => issue.id.slice(0, issue.id.indexOf('-')));
   const grouped = _.groupBy(issues, issue => issue.ver && issue.ver.length > 0 ? issue.ver[0] : 'No version');
 
-  fs.writeFileSync('dist/list-story.yaml', jsYaml.safeDump(grouped));
+  fs.writeFileSync(api.config.resolve('rootPath', 'dist/list-story.yaml'), jsYaml.safeDump(grouped));
   log.info('Result has been written to dist/list-story.yaml');
 
   await browser.close();
@@ -227,7 +230,7 @@ export async function sync() {
   const pages = await browser.pages();
 
   const issueByProj: {[proj: string]: Issue[]} = jsYaml.load(fs.readFileSync(
-    api.argv.file ? api.argv.file : 'dist/list-story.yaml', 'utf8'));
+    api.argv.file ? api.argv.file : api.config.resolve('rootPath', 'dist/list-story.yaml'), 'utf8'));
 
   for (const proj of Object.keys(issueByProj)) {
     const issues = issueByProj[proj];
@@ -441,7 +444,7 @@ function estimationToNum(estimationStr: string) {
 }
 
 function displayIssue(issue: Issue): string {
-  return issue.id + ` ${issue.name} (${issue.est}) | API int:${issue.intEst || '0'}`;
+  return chalk.cyan(issue.id) + ` ${chalk.gray(issue.name)} (${issue.est}) | API int:${issue.intEst || '0'}`;
 }
 
 function endDateBaseOnVersion(ver: string) {
@@ -456,18 +459,18 @@ function endDateBaseOnVersion(ver: string) {
   if (time.isBefore(new Date())) {
     time.add(1, 'years');
   }
-  return time.format('D/MMMM/YY');
+  return time.format('DD/MMMM/YY');
 }
 
 export function testDate() {
   console.log(endDateBaseOnVersion('feafa/903'));
-  console.log(moment('15/十月/19', 'D/MMMM/YY').toDate());
+  console.log(moment('15/十月/19', 'DD/MMMM/YY').toDate());
 }
 
 /**
  * Check README.md for command line arguments
  */
-export async function checkTask() {
+export async function checkTask(updateVersion?: boolean) {
   const browser = await launch(false);
   await browser.newPage();
   const pages = await browser.pages();
@@ -492,20 +495,20 @@ export async function checkTask() {
     const parentMap = await listIssueByIds(pages[0], Array.from(parentSet.values()));
 
     for (const [task, tr] of rows) {
-      const endDateObj = moment(task.endDate, 'D/MMMM/YY');
+      const endDateObj = moment(task.endDate, 'DD/MMMM/YY');
       if (task.endDate && endDateObj.isBefore(compareToDate)) {
         // tslint:disable-next-line:max-line-length
         log.warn(`End date:${task.endDate} "${displayIssue(task)}"`);
         if (api.argv.addDays) {
           await _editTr(pages[1], tr, {
-            endDate: endDateObj.add(parseInt(api.argv.addDays, 10), 'days').format('D/MMMM/YY')
+            endDate: endDateObj.add(parseInt(api.argv.addDays, 10), 'days').format('DD/MMMM/YY')
           });
         }
       }
 
       const parent = parentMap.get(task.parentId!);
       if (parent) {
-        const parentEndDateMom = moment(parent.endDate, 'D/MMMM/YY');
+        const parentEndDateMom = moment(parent.endDate, 'DD/MMMM/YY');
         const notSameVersion = task.ver[0] !== parent!.ver[0];
         const earlierEndDate = endDateObj.isBefore(parentEndDateMom);
         const verDate = endDateBaseOnVersion(parent.ver[0]);
@@ -516,22 +519,22 @@ export async function checkTask() {
         if (notSameVersion) {
           needUpdate = true;
           // tslint:disable-next-line: max-line-length
-          log.warn(`Task "${displayIssue(task)}"\n  version "${task.ver[0]}" doesn't match parent "${parent.ver[0]}"\n`);
+          log.warn(`Task "${displayIssue(task)}"\n  version "${task.ver[0]}" doesn't match parent ${parent.id} "${parent.ver[0]}"\n`);
           updateToTask.ver = parent.ver;
         }
         if (verDate && task.endDate !== verDate) {
           needUpdate = true;
           updateToTask.endDate = verDate;
           // tslint:disable-next-line: max-line-length
-          log.warn(`Task "${displayIssue(task)}"\n  end date "${task.endDate}" doesn't match parent version ${parent.ver[0]} - ${verDate}`);
+          log.warn(`Task "${displayIssue(task)}"\n  end date "${task.endDate}" doesn't match parent version ${parent.id} "${parent.ver[0]} - ${verDate}"`);
         } else if (earlierEndDate) {
           needUpdate = true;
           updateToTask.endDate = parent.endDate;
           // tslint:disable-next-line: max-line-length
-          log.warn(`Task "${displayIssue(task)}"\n  end date "${task.endDate}" is earlier than parent "${parent.endDate}"`);
+          log.warn(`Task "${displayIssue(task)}"\n  end date "${task.endDate}" is earlier than parent ${parent.id} "${parent.endDate}"`);
         }
 
-        if (needUpdate && api.argv.updateVersion) {
+        if (needUpdate && updateVersion === true || api.argv.updateVersion) {
           await _editTr(pages[1], tr, updateToTask);
         }
       }
