@@ -1,5 +1,5 @@
 {
-  "name": "@dr/pmo-schedular",
+  "name": "@dr/pmo-scheduler",
   "version": "1.0.0",
   "description": "Scheduled task executor, based on CRON",
   "dr": {

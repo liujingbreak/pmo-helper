@@ -3,3 +3,11 @@ node_modules
 /tsconfig.json
 /dist
 /logs
+
+
+
+
+packages/jira-helper/tsconfig.json
+
+
+packages/pmo-scheduler/tsconfig.json
