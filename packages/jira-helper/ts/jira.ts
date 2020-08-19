@@ -301,11 +301,11 @@ async function _addSubTask(page: pup.Page, task: NewTask) {
   await dialog.$('input[name=summary]')
     .then(input => input!.type(task.name));
 
-  const input = await dialog.$('#fixVersions-textarea');
-  await input!.click();
-  log.info('version:', task.ver![0]);
-  await input!.type(task.ver![0], {delay: 100});
-  await page.keyboard.press('Enter');
+  // const input = await dialog.$('#fixVersions-textarea');
+  // await input!.click();
+  // log.info('version:', task.ver![0]);
+  // await input!.type(task.ver![0], {delay: 100});
+  // await page.keyboard.press('Enter');
   await dialog.$('#description-wiki-edit').then(el => el!.click());
   await page.keyboard.type(task.desc ? task.desc : task.name);
 
