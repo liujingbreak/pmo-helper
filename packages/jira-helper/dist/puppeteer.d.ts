@@ -1,4 +1,5 @@
 import pup from 'puppeteer-core';
+export declare function setUseHeadless(yes: boolean): void;
 export declare function login(): Promise<void>;
 export declare function launch(headless?: boolean): Promise<pup.Browser>;
 export declare function main(): void;

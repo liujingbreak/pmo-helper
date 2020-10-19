@@ -2,7 +2,9 @@
   "name": "@dr/jira-helper",
   "version": "1.0.1",
   "description": "Automation helper tool for JIRA in BK",
-  "dr": {},
+  "dr": {
+    "cli": "dist/cli.js#default"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

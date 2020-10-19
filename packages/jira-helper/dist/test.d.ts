@@ -1,1 +1,1 @@
-declare const jira: Promise<typeof import("@dr/jira-helper/ts/jira")>;
+declare const jira: Promise<typeof import("./jira")>;

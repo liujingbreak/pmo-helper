@@ -1,3 +1,7 @@
+import pup from 'puppeteer-core';
+export interface Options {
+    headless: boolean;
+}
 export interface Issue {
     brief?: string;
     name: string;
@@ -16,8 +20,9 @@ export interface Issue {
     };
 }
 export declare function login(): Promise<void>;
+export declare function domToIssues(page: pup.Page, onEachPage?: (trPairs: [Issue, pup.ElementHandle][]) => Promise<void>): Promise<Issue[]>;
 export declare function listStory(url?: string): Promise<void>;
-export declare function sync(): Promise<void>;
+export declare function sync(opt: Options, sourceYamlFile?: string): Promise<void>;
 export declare function listParent(): Promise<void>;
 export declare function testDate(): void;
 /**

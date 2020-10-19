@@ -13,6 +13,10 @@ moment.locale('zh-cn');
 const log = log4js.getLogger('jira-helper');
 
 const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
+
+export interface Options {
+  headless: boolean;
+}
 export interface Issue {
   brief?: string;
   name: string;
@@ -225,12 +229,12 @@ export async function listStory(
   console.log('Have a nice day');
 }
 
-export async function sync() {
+export async function sync(opt: Options, sourceYamlFile?: string) {
   const browser = await launch(false);
   const pages = await browser.pages();
 
   const issueByProj: {[proj: string]: Issue[]} = jsYaml.load(fs.readFileSync(
-    api.argv.file ? api.argv.file : api.config.resolve('rootPath', 'dist/list-story.yaml'), 'utf8'));
+    sourceYamlFile ? sourceYamlFile : api.config.resolve('rootPath', 'dist/list-story.yaml'), 'utf8'));
 
   for (const proj of Object.keys(issueByProj)) {
     const issues = issueByProj[proj];
@@ -324,8 +328,8 @@ async function _addSubTask(page: pup.Page, task: NewTask) {
   }
   const dates = date();
   const formValues = {
-    'Start date': dates[0],
-    'End date': endDateBaseOnVersion(task.ver![0]) || dates[1],
+    任务提出日期: dates[0],
+    Deadline日期: endDateBaseOnVersion(task.ver![0]) || dates[1],
     // tslint:disable-next-line: object-literal-key-quotes
     '初始预估': duration,
     剩余的估算: duration,

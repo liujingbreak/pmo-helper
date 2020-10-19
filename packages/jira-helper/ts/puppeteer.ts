@@ -4,6 +4,11 @@ import pup from 'puppeteer-core';
 import api from '__api';
 const log = require('log4js').getLogger('jira-helper');
 
+let useHeadless = false;
+
+export function setUseHeadless(yes: boolean) {
+  useHeadless = yes;
+}
 // import os from 'os';
 export async function login() {
   const browser = await launch();
@@ -29,7 +34,7 @@ export async function launch(headless = false): Promise<pup.Browser> {
       log.error(msg);
       throw new Error(msg);
   }
-  if (api.argv.headless === true) {
+  if (useHeadless === true) {
     log.info('Enable headless mode');
     headless = true;
   }

@@ -1,1 +1,1 @@
-{"version":3,"sources":["node_modules/@dr/jira-helper/ts/test.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;AAAA,MAAM,IAAI,qDAAU,QAAQ,GAAC,CAAC","file":"test.js","sourcesContent":["const jira = import('./jira');\n"]}
+{"version":3,"sources":["test.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;AAAA,MAAM,IAAI,qDAAU,QAAQ,GAAC,CAAC","file":"test.js","sourcesContent":["const jira = import('./jira');\n"]}

@@ -97,9 +97,9 @@ async function listColumn(page: Page): Promise<tr.TrelloColumn[]> {
 
 async function syncFromJira(page: Page, issues: Issue[]) {
   const columns = await page.$$('#board > .list-wrapper > .list');
-  const colNames: string[] = await Promise.all(columns.map(async col => (await
+  const colNames: string[] = (await Promise.all(columns.map(async col => (await
     (await col.$('.list-header h2'))!.getProperty('innerText')
-    ).jsonValue()
+    ).jsonValue()) as any[]
   ));
 
   const colNameSet = new Set(colNames.map(name => /^([\S]+)/.exec(name)![1])); // get space separated prefix

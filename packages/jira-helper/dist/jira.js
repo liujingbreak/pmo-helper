@@ -1,20 +1,51 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.assignIssues = exports.moveIssues = exports.checkTask = exports.testDate = exports.listParent = exports.sync = exports.listStory = exports.login = void 0;
-const tslib_1 = require("tslib");
+exports.assignIssues = exports.moveIssues = exports.checkTask = exports.testDate = exports.listParent = exports.sync = exports.listStory = exports.domToIssues = exports.login = void 0;
 // tslint:disable no-console
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const jsYaml = tslib_1.__importStar(require("js-yaml"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const moment_1 = tslib_1.__importDefault(require("moment"));
-const __api_1 = tslib_1.__importDefault(require("__api"));
+const fs_1 = __importDefault(require("fs"));
+const jsYaml = __importStar(require("js-yaml"));
+const lodash_1 = __importDefault(require("lodash"));
+const moment_1 = __importDefault(require("moment"));
+const __api_1 = __importDefault(require("__api"));
 const puppeteer_1 = require("./puppeteer");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const chalk_1 = __importDefault(require("chalk"));
+const log4js_1 = __importDefault(require("log4js"));
 moment_1.default.locale('zh-cn');
-const log = require('log4js').getLogger('jira-helper');
+const log = log4js_1.default.getLogger('jira-helper');
 const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
 function login() {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const browser = yield puppeteer_1.launch(false);
         const pages = yield browser.pages();
         yield pages[0].goto('https://issue.bkjk-inc.com', { timeout: 0, waitUntil: 'domcontentloaded' });
@@ -23,7 +54,7 @@ function login() {
 exports.login = login;
 // export await function waitForCondition()
 function domToIssues(page, onEachPage) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         let issues = [];
         let pageIdx = 1;
         while (true) {
@@ -43,14 +74,14 @@ function domToIssues(page, onEachPage) {
             yield page.waitFor(500);
         }
         function fetchPage() {
-            return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            return __awaiter(this, void 0, void 0, function* () {
                 const trPairs = [];
                 const table = yield page.$('#issuetable');
                 if (table == null)
                     return [];
                 const cellTitles = yield getCellTitles(table);
                 log.info('List headers:', cellTitles.join(', '));
-                const done = yield Promise.all((yield table.$$(':scope > tbody > tr')).map((row) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                const done = yield Promise.all((yield table.$$(':scope > tbody > tr')).map((row) => __awaiter(this, void 0, void 0, function* () {
                     // Fill title2ValueMap and clsMap
                     const clsMap = yield row.$$eval(':scope > td', els => {
                         const colMap = {};
@@ -62,7 +93,7 @@ function domToIssues(page, onEachPage) {
                         return colMap;
                     });
                     const title2ValueMap = {};
-                    (yield Promise.all((yield row.$$(':scope > td')).map((td) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+                    (yield Promise.all((yield row.$$(':scope > td')).map((td) => __awaiter(this, void 0, void 0, function* () {
                         return (yield td.getProperty('innerText')).jsonValue();
                     })))).forEach((value, i) => title2ValueMap[cellTitles[i++]] = value);
                     // log.info(util.inspect(title2ValueMap));
@@ -93,7 +124,7 @@ function domToIssues(page, onEachPage) {
                         issue.name = (yield (yield links[0].getProperty('innerText')).jsonValue());
                     }
                     issue.ver = yield Promise.all((yield row.$$(':scope > td.fixVersions > *'))
-                        .map((a) => tslib_1.__awaiter(this, void 0, void 0, function* () { return (yield a.getProperty('innerText')).jsonValue(); })));
+                        .map((a) => __awaiter(this, void 0, void 0, function* () { return (yield a.getProperty('innerText')).jsonValue(); })));
                     if (trimedMap.aggregatetimeestimate) {
                         issue.est = estimationToNum(trimedMap.aggregatetimeestimate.trim());
                     }
@@ -107,10 +138,11 @@ function domToIssues(page, onEachPage) {
         return issues;
     });
 }
+exports.domToIssues = domToIssues;
 function listStory(
 // tslint:disable-next-line: max-line-length
 url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const includeProj = __api_1.default.argv.include ?
             new Set(__api_1.default.argv.include.split(',').map(el => el.trim())) :
             null;
@@ -142,7 +174,7 @@ url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
         log.info('Num of stories:', issues.length);
         // for (const issue of issues) {
         function forStorys(trPairs) {
-            return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            return __awaiter(this, void 0, void 0, function* () {
                 for (const [issue, tr] of trPairs) {
                     const prefix = issue.id.slice(0, issue.id.indexOf('-'));
                     if (includeProj && !includeProj.has(prefix) ||
@@ -172,7 +204,7 @@ url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
         }
         // const grouped = _.groupBy(issues, issue => issue.id.slice(0, issue.id.indexOf('-')));
         const grouped = lodash_1.default.groupBy(issues, issue => issue.ver && issue.ver.length > 0 ? issue.ver[0] : 'No version');
-        fs_1.default.writeFileSync('dist/list-story.yaml', jsYaml.safeDump(grouped));
+        fs_1.default.writeFileSync(__api_1.default.config.resolve('rootPath', 'dist/list-story.yaml'), jsYaml.safeDump(grouped));
         log.info('Result has been written to dist/list-story.yaml');
         yield browser.close();
         // tslint:disable-next-line: no-console
@@ -180,11 +212,11 @@ url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
     });
 }
 exports.listStory = listStory;
-function sync() {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+function sync(opt, sourceYamlFile) {
+    return __awaiter(this, void 0, void 0, function* () {
         const browser = yield puppeteer_1.launch(false);
         const pages = yield browser.pages();
-        const issueByProj = jsYaml.load(fs_1.default.readFileSync(__api_1.default.argv.file ? __api_1.default.argv.file : 'dist/list-story.yaml', 'utf8'));
+        const issueByProj = jsYaml.load(fs_1.default.readFileSync(sourceYamlFile ? sourceYamlFile : __api_1.default.config.resolve('rootPath', 'dist/list-story.yaml'), 'utf8'));
         for (const proj of Object.keys(issueByProj)) {
             const issues = issueByProj[proj];
             log.info(issues.length);
@@ -221,7 +253,7 @@ function sync() {
 }
 exports.sync = sync;
 function createTasks(parentIssue, tasks, page) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         yield page.goto('https://issue.bkjk-inc.com/browse/' + parentIssue.id, { timeout: 0, waitUntil: 'networkidle2' });
         const remoteTasks = yield listSubtasks(page, parentIssue);
         parentIssue.ver = yield Promise.all((yield page.$$('#fixfor-val a'))
@@ -241,7 +273,7 @@ function createTasks(parentIssue, tasks, page) {
     });
 }
 function _addSubTask(page, task) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         log.info('adding', task);
         yield clickMoreButton(page, '创建子任务');
         yield page.waitFor('#create-subtask-dialog', { visible: true });
@@ -250,11 +282,11 @@ function _addSubTask(page, task) {
             throw new Error('Adding issue dialog not found');
         yield dialog.$('input[name=summary]')
             .then(input => input.type(task.name));
-        const input = yield dialog.$('#fixVersions-textarea');
-        yield input.click();
-        log.info('version:', task.ver[0]);
-        yield input.type(task.ver[0], { delay: 100 });
-        yield page.keyboard.press('Enter');
+        // const input = await dialog.$('#fixVersions-textarea');
+        // await input!.click();
+        // log.info('version:', task.ver![0]);
+        // await input!.type(task.ver![0], {delay: 100});
+        // await page.keyboard.press('Enter');
         yield dialog.$('#description-wiki-edit').then(el => el.click());
         yield page.keyboard.type(task.desc ? task.desc : task.name);
         const labels = yield dialog.$$('.field-group > label');
@@ -269,8 +301,8 @@ function _addSubTask(page, task) {
         }
         const dates = date();
         const formValues = {
-            'Start date': dates[0],
-            'End date': endDateBaseOnVersion(task.ver[0]) || dates[1],
+            任务提出日期: dates[0],
+            Deadline日期: endDateBaseOnVersion(task.ver[0]) || dates[1],
             // tslint:disable-next-line: object-literal-key-quotes
             '初始预估': duration,
             剩余的估算: duration,
@@ -303,7 +335,7 @@ function _addSubTask(page, task) {
     });
 }
 function listSubtasks(page, { ver }) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const tasks = yield page.$$eval('#view-subtasks #issuetable > tbody > tr', (els, ver) => {
             return els.map(el => {
                 const name = el.querySelector(':scope > .stsummary > a');
@@ -322,13 +354,13 @@ function listSubtasks(page, { ver }) {
     });
 }
 function listParent() {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const browser = yield puppeteer_1.launch(false);
         const page = (yield browser.pages())[0];
         const storyMap = new Map();
         // tslint:disable-next-line: max-line-length
         yield page.goto('https://issue.bkjk-inc.com/issues/?filter=14109', { waitUntil: 'networkidle2' });
-        yield domToIssues(page, (rows) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield domToIssues(page, (rows) => __awaiter(this, void 0, void 0, function* () {
             for (const [issue, tr] of rows) {
                 if (issue.parentId) {
                     const link = yield tr.$(':scope > td.summary a.issue-link');
@@ -413,7 +445,7 @@ exports.testDate = testDate;
  * Check README.md for command line arguments
  */
 function checkTask(updateVersion) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const browser = yield puppeteer_1.launch(false);
         yield browser.newPage();
         const pages = yield browser.pages();
@@ -422,7 +454,7 @@ function checkTask(updateVersion) {
         const parentSet = new Set();
         const compareToDate = moment_1.default().add(__api_1.default.argv.endInDays || 3, 'days');
         log.info('Comparent to end date:', compareToDate.format('YYYY/M/D'));
-        yield domToIssues(pages[1], (rows) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield domToIssues(pages[1], (rows) => __awaiter(this, void 0, void 0, function* () {
             rows = rows.filter(([task]) => task.status === '开放' || task.status === 'DEVELOPING');
             parentSet.clear();
             for (const row of rows) {
@@ -481,7 +513,7 @@ function checkTask(updateVersion) {
 }
 exports.checkTask = checkTask;
 function _editTr(page, tr, updateTask) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         yield (yield tr.$$(':scope > .summary .issue-link'))[1].click();
         yield editIssue(page, updateTask);
         yield page.goBack();
@@ -489,7 +521,7 @@ function _editTr(page, tr, updateTask) {
     });
 }
 function editIssue(page, task) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const editButton = yield page.waitForSelector('#edit-issue', { visible: true });
         yield editButton.click();
         const dialog = yield page.waitForSelector('#edit-issue-dialog', { visible: true });
@@ -550,11 +582,11 @@ function editIssue(page, task) {
     });
 }
 function getCellTitles(issueTable) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         if (issueTable == null)
             return [];
         const ths = yield issueTable.$$(':scope > thead th');
-        const titles = yield Promise.all(ths.map((th) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        const titles = yield Promise.all(ths.map((th) => __awaiter(this, void 0, void 0, function* () {
             const header = yield th.$(':scope > span[title]');
             if (header) {
                 return (yield header.getProperty('innerText')).jsonValue();
@@ -567,7 +599,7 @@ function getCellTitles(issueTable) {
     });
 }
 function listIssueByIds(page, ids) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const jql = 'jql=' + encodeURIComponent(`id in (${ids.join(',')})`);
         yield page.goto('https://issue.bkjk-inc.com/issues/?' + jql);
         const issueMap = (yield domToIssues(page)).reduce((map, issue) => {
@@ -578,7 +610,7 @@ function listIssueByIds(page, ids) {
     });
 }
 function moveIssues(newParentId, ...movedIssueIds) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const browser = yield puppeteer_1.launch();
         const page = (yield browser.pages())[0];
         const parentIssueMap = yield listIssueByIds(page, [newParentId]);
@@ -619,12 +651,12 @@ function moveIssues(newParentId, ...movedIssueIds) {
 }
 exports.moveIssues = moveIssues;
 function assignIssues(assignee, ...issueIds) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const browser = yield puppeteer_1.launch();
         const page = (yield browser.pages())[0];
         const jql = 'jql=' + encodeURIComponent(`id in (${issueIds.join(',')})`);
         yield page.goto('https://issue.bkjk-inc.com/issues/?' + jql);
-        yield domToIssues(page, (pairs) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield domToIssues(page, (pairs) => __awaiter(this, void 0, void 0, function* () {
             for (const [issue, el] of pairs) {
                 if (issue.assignee === assignee)
                     continue;
@@ -651,7 +683,7 @@ function assignIssues(assignee, ...issueIds) {
 }
 exports.assignIssues = assignIssues;
 function clickMoreButton(page, button) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const moreBtn = yield page.$('#opsbar-operations_more');
         if (moreBtn == null)
             throw new Error('#opsbar-operations_more not found in page'); // click 更多
@@ -669,7 +701,7 @@ function clickMoreButton(page, button) {
     });
 }
 function editInputText(page, inputEl, newValue) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         if (inputEl == null)
             return;
         const value = yield inputEl.evaluate((input) => input.value);
