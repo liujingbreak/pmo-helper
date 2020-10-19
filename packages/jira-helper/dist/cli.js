@@ -43,17 +43,20 @@ const cliExt = (program, withGlobalOptions) => {
         (yield Promise.resolve().then(() => __importStar(require('./jira')))).sync({ headless: cmdSync.opts().headless }, file);
     }));
     withGlobalOptions(cmdSync);
-    const cmdList = program.command('jira-list-story')
-        .description('Fetch JIRA stories from remote server')
+    const cmdList = program.command('jira-list-story [URL]')
+        .description('Fetch JIRA stories from remote server list page [URL],' +
+        'default: https://issue.bkjk-inc.com/issues/?filter=14118')
+        .option('--include <issue-prefix>', 'Only include issues with specific ID prefix')
+        .option('--include-version <version>', 'Only inlucde issue with specific version')
         .option('--headless', 'use headless puppeteer')
-        .action((file) => __awaiter(void 0, void 0, void 0, function* () {
+        .action((url) => __awaiter(void 0, void 0, void 0, function* () {
         dist_1.initConfig(cmdList.opts());
         dist_1.initProcess();
         require('@wfh/plink/wfh/dist').prepareLazyNodeInjector();
         if (cmdList.opts().headless) {
             require('./puppeteer').setUseHeadless(true);
         }
-        (yield Promise.resolve().then(() => __importStar(require('./jira')))).listStory();
+        (yield Promise.resolve().then(() => __importStar(require('./jira')))).listStory(cmdList.opts(), url);
     }));
     withGlobalOptions(cmdList);
 };

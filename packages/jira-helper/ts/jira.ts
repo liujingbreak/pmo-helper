@@ -143,18 +143,18 @@ export async function domToIssues(page: pup.Page,
   return issues;
 }
 
-export async function listStory(
+export async function listStory(opts: {include?: string; includeVersion?: string},
   // tslint:disable-next-line: max-line-length
   url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
 
-  const includeProj = api.argv.include ?
-    new Set<string>((api.argv.include as string).split(',').map(el => el.trim()) ):
+  const includeProj = opts.include ?
+    new Set<string>((opts.include as string).split(',').map(el => el.trim()) ):
       null;
   if (includeProj)
     console.log('include project prfiex: ', includeProj);
 
-  const includeVer = api.argv.includeVersion ?
-    (api.argv.includeVersion + '').split(',').map(el => el.trim().toLocaleLowerCase()) : null;
+  const includeVer = opts.includeVersion ?
+    (opts.includeVersion + '').split(',').map(el => el.trim().toLocaleLowerCase()) : null;
 
 
   const browser = await launch(false);

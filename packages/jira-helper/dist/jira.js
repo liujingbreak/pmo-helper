@@ -139,17 +139,17 @@ function domToIssues(page, onEachPage) {
     });
 }
 exports.domToIssues = domToIssues;
-function listStory(
+function listStory(opts, 
 // tslint:disable-next-line: max-line-length
 url = 'https://issue.bkjk-inc.com/issues/?filter=14118') {
     return __awaiter(this, void 0, void 0, function* () {
-        const includeProj = __api_1.default.argv.include ?
-            new Set(__api_1.default.argv.include.split(',').map(el => el.trim())) :
+        const includeProj = opts.include ?
+            new Set(opts.include.split(',').map(el => el.trim())) :
             null;
         if (includeProj)
             console.log('include project prfiex: ', includeProj);
-        const includeVer = __api_1.default.argv.includeVersion ?
-            (__api_1.default.argv.includeVersion + '').split(',').map(el => el.trim().toLocaleLowerCase()) : null;
+        const includeVer = opts.includeVersion ?
+            (opts.includeVersion + '').split(',').map(el => el.trim().toLocaleLowerCase()) : null;
         const browser = yield puppeteer_1.launch(false);
         const pages = yield browser.pages();
         yield pages[0].goto(url, { timeout: 0, waitUntil: 'networkidle2' });

@@ -18,17 +18,20 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   });
   withGlobalOptions(cmdSync);
 
-  const cmdList = program.command('jira-list-story')
-  .description('Fetch JIRA stories from remote server')
+  const cmdList = program.command('jira-list-story [URL]')
+  .description('Fetch JIRA stories from remote server list page [URL],' +
+    'default: https://issue.bkjk-inc.com/issues/?filter=14118')
+  .option('--include <issue-prefix>', 'Only include issues with specific ID prefix')
+  .option('--include-version <version>', 'Only inlucde issue with specific version')
   .option('--headless', 'use headless puppeteer')
-  .action(async (file: string) => {
+  .action(async (url: string) => {
     initConfig(cmdList.opts() as GlobalOptions);
     initProcess();
     (require('@wfh/plink/wfh/dist').prepareLazyNodeInjector as typeof prepareLazyNodeInjector)();
     if (cmdList.opts().headless) {
       (require('./puppeteer') as typeof puppeteer).setUseHeadless(true);
     }
-    (await import('./jira')).listStory();
+    (await import('./jira')).listStory(cmdList.opts(), url);
   });
   withGlobalOptions(cmdList);
 };
