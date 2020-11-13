@@ -12,7 +12,7 @@ import log4js from 'log4js';
 moment.locale('zh-cn');
 const log = log4js.getLogger('jira-helper');
 
-const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
+// const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
 
 export interface Options {
   headless: boolean;
@@ -329,7 +329,7 @@ async function _addSubTask(page: pup.Page, task: NewTask) {
   const dates = date();
   const formValues = {
     任务提出日期: dates[0],
-    Deadline日期: endDateBaseOnVersion(task.ver![0]) || dates[1],
+    'End date': endDateBaseOnVersion(task.ver![0]) || dates[1],
     // tslint:disable-next-line: object-literal-key-quotes
     '初始预估': duration,
     剩余的估算: duration,
@@ -337,16 +337,18 @@ async function _addSubTask(page: pup.Page, task: NewTask) {
   };
 
   for (const name of Object.keys(labelMap)) {
-    if (name.indexOf('模块') >= 0 && !_.has(formValues, name)) {
+    if (['任务提出日期', 'End date'].includes(name) && _.has(formValues, name)) {
+      // If there has been a existing value, skip this field
       const id = (await labelMap[name].evaluate(el => el.getAttribute('for')));
       const inputEl = await page.$('#' + id);
       const value = await inputEl!.evaluate(el => (el as HTMLTextAreaElement).value);
       if (value.trim().length === 0) {
         await inputEl!.click();
-        await page.keyboard.type(DEFAULT_TASK_MODULE_VALUE, {delay: 50});
+        await page.keyboard.type(formValues[name], {delay: 50});
       }
       continue;
     }
+
     if (!_.has(formValues, name))
       continue;
     await labelMap[name].click({delay: 50});

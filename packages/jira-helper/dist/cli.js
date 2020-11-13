@@ -30,6 +30,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const dist_1 = require("@wfh/plink/wfh/dist");
 const cliExt = (program, withGlobalOptions) => {
+    const cmdLogin = program.command('jira-login')
+        .description('Login JIRA and save browser cache')
+        .action((file) => __awaiter(void 0, void 0, void 0, function* () {
+        dist_1.initConfig(cmdSync.opts());
+        dist_1.initProcess();
+        require('@wfh/plink/wfh/dist').prepareLazyNodeInjector();
+        (yield Promise.resolve().then(() => __importStar(require('./jira')))).login();
+    }));
+    withGlobalOptions(cmdLogin);
     const cmdSync = program.command('jira-sync [yaml-file]')
         .description('Read YAML file and create new tasks in JIRA')
         .option('--headless', 'use headless puppeteer')

@@ -4,6 +4,17 @@ import {initConfig, initProcess, prepareLazyNodeInjector} from '@wfh/plink/wfh/d
 import * as puppeteer from './puppeteer';
 
 const cliExt: CliExtension = (program, withGlobalOptions) => {
+  const cmdLogin = program.command('jira-login')
+  .description('Login JIRA and save browser cache')
+  .action(async (file: string) => {
+    initConfig(cmdSync.opts() as GlobalOptions);
+    initProcess();
+    (require('@wfh/plink/wfh/dist').prepareLazyNodeInjector as typeof prepareLazyNodeInjector)();
+    (await import('./jira')).login();
+  });
+  withGlobalOptions(cmdLogin);
+
+
   const cmdSync = program.command('jira-sync [yaml-file]')
   .description('Read YAML file and create new tasks in JIRA')
   .option('--headless', 'use headless puppeteer')

@@ -43,7 +43,6 @@ const chalk_1 = __importDefault(require("chalk"));
 const log4js_1 = __importDefault(require("log4js"));
 moment_1.default.locale('zh-cn');
 const log = log4js_1.default.getLogger('jira-helper');
-const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
 function login() {
     return __awaiter(this, void 0, void 0, function* () {
         const browser = yield puppeteer_1.launch(false);
@@ -302,20 +301,21 @@ function _addSubTask(page, task) {
         const dates = date();
         const formValues = {
             任务提出日期: dates[0],
-            Deadline日期: endDateBaseOnVersion(task.ver[0]) || dates[1],
+            'End date': endDateBaseOnVersion(task.ver[0]) || dates[1],
             // tslint:disable-next-line: object-literal-key-quotes
             '初始预估': duration,
             剩余的估算: duration,
             经办人: task.assignee || '刘晶'
         };
         for (const name of Object.keys(labelMap)) {
-            if (name.indexOf('模块') >= 0 && !lodash_1.default.has(formValues, name)) {
+            if (['任务提出日期', 'End date'].includes(name) && lodash_1.default.has(formValues, name)) {
+                // If there has been a existing value, skip this field
                 const id = (yield labelMap[name].evaluate(el => el.getAttribute('for')));
                 const inputEl = yield page.$('#' + id);
                 const value = yield inputEl.evaluate(el => el.value);
                 if (value.trim().length === 0) {
                     yield inputEl.click();
-                    yield page.keyboard.type(DEFAULT_TASK_MODULE_VALUE, { delay: 50 });
+                    yield page.keyboard.type(formValues[name], { delay: 50 });
                 }
                 continue;
             }
