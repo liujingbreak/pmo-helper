@@ -406,8 +406,12 @@ function date() {
     // console.log(time.format('D/MMMM/YY'), time.add(21, 'days').format('D/MMMM/YY'));
     return [time.format('D/MMMM/YY'), time.add(30, 'days').format('D/MMMM/YY')];
 }
+/**
+ * To days
+ * @param estimationStr
+ */
 function estimationToNum(estimationStr) {
-    const match = /([0-9.]+)(日|小时|分)/.exec(estimationStr);
+    const match = /([0-9.]+)(日|小时|分|d)/.exec(estimationStr);
     if (!match) {
         throw new Error(`Invalide estimation format: ${estimationStr}`);
     }
@@ -416,6 +420,9 @@ function estimationToNum(estimationStr) {
     }
     else if (match[2] === '分') {
         return parseInt(match[1], 10) / 8 / 60;
+    }
+    else if (match[2] === 'd') {
+        return parseFloat(match[1]);
     }
     return parseFloat(match[1]);
 }
