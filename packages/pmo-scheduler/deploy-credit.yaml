@@ -1,0 +1,25 @@
+'@wfh/prebuild':
+  prebuildGitRemote: deploy
+  prebuildReleaseBranch: release-server
+  tagPushRemote: origin
+  byEnv:
+    local:
+      installEndpoint: 'http://localhost:14333'
+      sendConcurrency: 1
+      sendNodes: 1
+    dev:
+      installEndpoint: 'https://credit-service.dev.bkjk.com'
+      sendConcurrency: 1
+      sendNodes: 1
+    test:
+      installEndpoint: 'https://credit-service.test.bkjk.com'
+      sendConcurrency: 1
+      sendNodes: 1
+    stage:
+      installEndpoint: 'https://credit-service.stage.bkjk.com'
+      sendConcurrency: 1
+      sendNodes: 1
+    prod:
+      installEndpoint: 'https://credit-service.bkjk.com'
+      sendConcurrency: 2
+      sendNodes: 2

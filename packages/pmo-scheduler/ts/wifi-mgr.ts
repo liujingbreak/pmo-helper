@@ -1,7 +1,13 @@
 import {CronJob} from 'cron';
-import {spawn} from 'dr-comp-package/wfh/dist/process-utils';
+import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import axios from 'axios';
 import chalk from 'chalk';
+import {switchMap, retry, catchError, map} from 'rxjs/operators';
+import {of, timer, Observable} from 'rxjs';
+import axiosob from 'axios-observable';
+import {fork} from 'child_process';
+import {generateToken} from '@wfh/assets-processer/dist/content-deployer/cd-server';
+// import log4js from 'log4js';
 
 /**
  * https://www.easycron.com/faq/What-cron-expression-does-easycron-support
@@ -44,4 +50,54 @@ export function turnOff() {
 
 export function turnOn() {
   spawn('networksetup', '-setnetworkserviceenabled', 'Wi-Fi', 'on');
+}
+
+export function checkCreditApplServer() {
+  timer(0, 30 * 60000)
+  .pipe(
+    switchMap(() => axiosob.get<string>('https://credit-service.bkjk.com/byj.githash-webui.txt')
+      .pipe(
+        catchError(err => {
+          console.error(chalk.red(err.message), err);
+          return timer(5000).pipe(
+            map(() => {throw err;})
+          );
+        }),
+        retry(3),
+        catchError(err => {
+          console.error(chalk.yellow('Failed to retry'), err);
+          return of(null);
+        })
+      )),
+    switchMap(res => {
+      if (res == null)
+        return of();
+
+      console.log(res.data);
+      if (res.data.indexOf('user who has no balance applied can not go backward in introdcution page') < 0) {
+        return new Observable(sub => {
+          const worker = fork(require.resolve('@wfh/plink/bin/dr'),
+            `send --env prod --con 2 --nodes 2 --secret ${generateToken()} -c packages/pmo-scheduler/deploy-credit.yaml byj install-prod/byj.zip`.split(/\s+/),
+            {serialization: 'advanced', stdio: 'inherit'});
+          worker.on('error', () => {sub.next(); sub.complete();});
+          worker.on('exit', (err) => {sub.error(err);});
+        }).pipe(
+          retry(1),
+          catchError(err => {
+            console.error(chalk.yellow('Failed to retry'), err);
+            return of();
+          })
+        );
+      }
+
+      const now = new Date();
+      console.log(chalk.green(now.toLocaleTimeString() + ' ' + now.toLocaleDateString()));
+      return of();
+    })
+  )
+  .subscribe();
+}
+
+export function createCmd() {
+
 }

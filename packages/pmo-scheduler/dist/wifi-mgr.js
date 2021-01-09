@@ -1,26 +1,77 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createCmd = exports.checkCreditApplServer = exports.turnOn = exports.turnOff = void 0;
 const cron_1 = require("cron");
-const process_utils_1 = require("dr-comp-package/wfh/dist/process-utils");
+const process_utils_1 = require("@wfh/plink/wfh/dist/process-utils");
+const axios_1 = __importDefault(require("axios"));
+const chalk_1 = __importDefault(require("chalk"));
+const operators_1 = require("rxjs/operators");
+const rxjs_1 = require("rxjs");
+const axios_observable_1 = __importDefault(require("axios-observable"));
+// import log4js from 'log4js';
 /**
  * https://www.easycron.com/faq/What-cron-expression-does-easycron-support
  *
  */
 function turnOff() {
     const sec = Math.ceil(Math.random() * 60);
-    const min = 53 + Math.ceil(Math.random() * 15);
+    let min = 50 + Math.ceil(Math.random() * 15);
+    let hour = 19;
+    if (min >= 60) {
+        min = min - 60;
+        hour++;
+    }
+    const startSec = Math.ceil(Math.random() * 60);
+    let startMin = 55 + Math.ceil(Math.random() * 5);
+    let startHour = 9;
+    if (startMin >= 60) {
+        startMin = startMin - 60;
+        startHour++;
+    }
     // tslint:disable-next-line: no-console
-    console.log(`Will turn off on 19:${min}:${sec}`);
-    new cron_1.CronJob(`${sec} ${min} 19 * * 1,2,3,4,5`, () => {
+    console.log(`Will turn off at ${hour}:${min}:${sec} and\n` +
+        `Turn on at ${chalk_1.default.cyan(startHour + '')}:${startMin}:${startSec}`);
+    new cron_1.CronJob(`${sec} ${min} ${hour} * * 1,2,3,4,5`, () => {
         // tslint:disable-next-line: no-console
-        console.log('You will see this message every second');
+        console.log('Turning off');
         process_utils_1.spawn('networksetup', '-setnetworkserviceenabled', 'Wi-Fi', 'off');
     }).start();
+    new cron_1.CronJob(`${startSec} ${startMin} ${startHour} * * 1,2,3,4,5`, () => __awaiter(this, void 0, void 0, function* () {
+        // tslint:disable-next-line: no-console
+        console.log('Turning on');
+        yield process_utils_1.spawn('networksetup', '-setnetworkserviceenabled', 'Wi-Fi', 'on').promise;
+        yield new Promise(resolve => setTimeout(resolve, 15000));
+        axios_1.default.get('https://www.baidu.com');
+    })).start();
 }
 exports.turnOff = turnOff;
 function turnOn() {
-    process_utils_1.spawn('networksetup', '-setnetworkserviceenabled', 'Wi-Fi', 'On');
+    process_utils_1.spawn('networksetup', '-setnetworkserviceenabled', 'Wi-Fi', 'on');
 }
 exports.turnOn = turnOn;
+function checkCreditApplServer() {
+    rxjs_1.timer(0, 30 * 60000).pipe(operators_1.switchMap(() => axios_observable_1.default.get('https://credit-service.bkjk.com/byj.githash-webui.txt')), operators_1.switchMap(res => {
+        console.log(res.data);
+        console.log(chalk_1.default.green(new Date().toLocaleTimeString()));
+        return rxjs_1.from(Promise.resolve());
+    }))
+        .subscribe();
+}
+exports.checkCreditApplServer = checkCreditApplServer;
+function createCmd() {
+}
+exports.createCmd = createCmd;
 
-//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5vZGVfbW9kdWxlcy9AZHIvcG1vLXNjaGVkdWxhci90cy93aWZpLW1nci50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLCtCQUE2QjtBQUM3QiwwRUFBNkQ7QUFHN0Q7OztHQUdHO0FBQ0gsU0FBZ0IsT0FBTztJQUNyQixNQUFNLEdBQUcsR0FBRyxJQUFJLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQyxNQUFNLEVBQUUsR0FBRyxFQUFFLENBQUMsQ0FBQztJQUMxQyxNQUFNLEdBQUcsR0FBRyxFQUFFLEdBQUcsSUFBSSxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsTUFBTSxFQUFFLEdBQUcsRUFBRSxDQUFDLENBQUM7SUFFL0MsdUNBQXVDO0lBQ3ZDLE9BQU8sQ0FBQyxHQUFHLENBQUMsdUJBQXVCLEdBQUcsSUFBSSxHQUFHLEVBQUUsQ0FBQyxDQUFDO0lBQ2pELElBQUksY0FBTyxDQUFDLEdBQUcsR0FBRyxJQUFJLEdBQUcsbUJBQW1CLEVBQUUsR0FBRyxFQUFFO1FBQ2pELHVDQUF1QztRQUN2QyxPQUFPLENBQUMsR0FBRyxDQUFDLHdDQUF3QyxDQUFDLENBQUM7UUFDdEQscUJBQUssQ0FBQyxjQUFjLEVBQUUsMkJBQTJCLEVBQUUsT0FBTyxFQUFFLEtBQUssQ0FBQyxDQUFDO0lBQ3JFLENBQUMsQ0FBQyxDQUFDLEtBQUssRUFBRSxDQUFDO0FBQ2IsQ0FBQztBQVhELDBCQVdDO0FBRUQsU0FBZ0IsTUFBTTtJQUNwQixxQkFBSyxDQUFDLGNBQWMsRUFBRSwyQkFBMkIsRUFBRSxPQUFPLEVBQUUsSUFBSSxDQUFDLENBQUM7QUFDcEUsQ0FBQztBQUZELHdCQUVDIiwiZmlsZSI6Im5vZGVfbW9kdWxlcy9AZHIvcG1vLXNjaGVkdWxhci9kaXN0L3dpZmktbWdyLmpzIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtDcm9uSm9ifSBmcm9tICdjcm9uJztcbmltcG9ydCB7c3Bhd259IGZyb20gJ2RyLWNvbXAtcGFja2FnZS93ZmgvZGlzdC9wcm9jZXNzLXV0aWxzJztcblxuXG4vKipcbiAqIGh0dHBzOi8vd3d3LmVhc3ljcm9uLmNvbS9mYXEvV2hhdC1jcm9uLWV4cHJlc3Npb24tZG9lcy1lYXN5Y3Jvbi1zdXBwb3J0XG4gKiBcbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIHR1cm5PZmYoKSB7XG4gIGNvbnN0IHNlYyA9IE1hdGguY2VpbChNYXRoLnJhbmRvbSgpICogNjApO1xuICBjb25zdCBtaW4gPSA1MyArIE1hdGguY2VpbChNYXRoLnJhbmRvbSgpICogMTUpO1xuXG4gIC8vIHRzbGludDpkaXNhYmxlLW5leHQtbGluZTogbm8tY29uc29sZVxuICBjb25zb2xlLmxvZyhgV2lsbCB0dXJuIG9mZiBvbiAxOToke21pbn06JHtzZWN9YCk7XG4gIG5ldyBDcm9uSm9iKGAke3NlY30gJHttaW59IDE5ICogKiAxLDIsMyw0LDVgLCAoKSA9PiB7XG4gICAgLy8gdHNsaW50OmRpc2FibGUtbmV4dC1saW5lOiBuby1jb25zb2xlXG4gICAgY29uc29sZS5sb2coJ1lvdSB3aWxsIHNlZSB0aGlzIG1lc3NhZ2UgZXZlcnkgc2Vjb25kJyk7XG4gICAgc3Bhd24oJ25ldHdvcmtzZXR1cCcsICctc2V0bmV0d29ya3NlcnZpY2VlbmFibGVkJywgJ1dpLUZpJywgJ29mZicpO1xuICB9KS5zdGFydCgpO1xufVxuXG5leHBvcnQgZnVuY3Rpb24gdHVybk9uKCkge1xuICBzcGF3bignbmV0d29ya3NldHVwJywgJy1zZXRuZXR3b3Jrc2VydmljZWVuYWJsZWQnLCAnV2ktRmknLCAnT24nKTtcbn1cbiJdfQ==
+//# sourceMappingURL=wifi-mgr.js.map

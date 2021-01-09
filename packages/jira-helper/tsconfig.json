@@ -1,0 +1,155 @@
+{
+  "extends": "../../../web-fun-house/main/wfh/tsconfig-base.json",
+  "include": [
+    "."
+  ],
+  "compilerOptions": {
+    "rootDir": "../../..",
+    "skipLibCheck": false,
+    "jsx": "preserve",
+    "noImplicitAny": true,
+    "target": "es2015",
+    "module": "commonjs",
+    "paths": {
+      "@wfh/cra-scripts": [
+        "../../../web-fun-house/src/internal/cra-scripts"
+      ],
+      "@wfh/cra-scripts/*": [
+        "../../../web-fun-house/src/internal/cra-scripts/*"
+      ],
+      "@wfh/ng-app-builder": [
+        "../../../web-fun-house/src/internal/ng-app-builder"
+      ],
+      "@wfh/ng-app-builder/*": [
+        "../../../web-fun-house/src/internal/ng-app-builder/*"
+      ],
+      "@wfh/webpack-common": [
+        "../../../web-fun-house/src/internal/webpack-common"
+      ],
+      "@wfh/webpack-common/*": [
+        "../../../web-fun-house/src/internal/webpack-common/*"
+      ],
+      "@wfh/font-clip": [
+        "../../../web-fun-house/src/legacy/font-clip"
+      ],
+      "@wfh/font-clip/*": [
+        "../../../web-fun-house/src/legacy/font-clip/*"
+      ],
+      "@wfh/translate-generator": [
+        "../../../web-fun-house/src/legacy/translate-generator"
+      ],
+      "@wfh/translate-generator/*": [
+        "../../../web-fun-house/src/legacy/translate-generator/*"
+      ],
+      "@wfh/webpack2-builder": [
+        "../../../web-fun-house/src/legacy/webpack2-builder"
+      ],
+      "@wfh/webpack2-builder/*": [
+        "../../../web-fun-house/src/legacy/webpack2-builder/*"
+      ],
+      "@wfh/assets-processer": [
+        "../../../web-fun-house/src/runtime/assets-processer"
+      ],
+      "@wfh/assets-processer/*": [
+        "../../../web-fun-house/src/runtime/assets-processer/*"
+      ],
+      "@wfh/express-app": [
+        "../../../web-fun-house/src/runtime/express-app"
+      ],
+      "@wfh/express-app/*": [
+        "../../../web-fun-house/src/runtime/express-app/*"
+      ],
+      "@wfh/http-server": [
+        "../../../web-fun-house/src/runtime/http-server"
+      ],
+      "@wfh/http-server/*": [
+        "../../../web-fun-house/src/runtime/http-server/*"
+      ],
+      "@wfh/http-request-proxy": [
+        "../../../web-fun-house/src/tools/http-request-proxy"
+      ],
+      "@wfh/http-request-proxy/*": [
+        "../../../web-fun-house/src/tools/http-request-proxy/*"
+      ],
+      "@wfh/jasmine-helper": [
+        "../../../web-fun-house/src/tools/jasmine-helper"
+      ],
+      "@wfh/jasmine-helper/*": [
+        "../../../web-fun-house/src/tools/jasmine-helper/*"
+      ],
+      "@wfh/json-schema-gen": [
+        "../../../web-fun-house/src/tools/json-schema-gen"
+      ],
+      "@wfh/json-schema-gen/*": [
+        "../../../web-fun-house/src/tools/json-schema-gen/*"
+      ],
+      "@wfh/prebuild": [
+        "../../../web-fun-house/src/tools/prebuild"
+      ],
+      "@wfh/prebuild/*": [
+        "../../../web-fun-house/src/tools/prebuild/*"
+      ],
+      "@wfh/tool-misc": [
+        "../../../web-fun-house/src/tools/tool-misc"
+      ],
+      "@wfh/tool-misc/*": [
+        "../../../web-fun-house/src/tools/tool-misc/*"
+      ],
+      "@wfh/vendor-binary": [
+        "../../../web-fun-house/src/tools/vendor-binary"
+      ],
+      "@wfh/vendor-binary/*": [
+        "../../../web-fun-house/src/tools/vendor-binary/*"
+      ],
+      "@wfh/plink-cli": [
+        "../../../web-fun-house/main/install-cli"
+      ],
+      "@wfh/plink-cli/*": [
+        "../../../web-fun-house/main/install-cli/*"
+      ],
+      "@wfh/redux-toolkit-observable": [
+        "../../../web-fun-house/main/redux-toolkit-observable"
+      ],
+      "@wfh/redux-toolkit-observable/*": [
+        "../../../web-fun-house/main/redux-toolkit-observable/*"
+      ],
+      "@wfh/plink-global-types": [
+        "../../../web-fun-house/main/wfh/types/plink-global-types"
+      ],
+      "@wfh/plink-global-types/*": [
+        "../../../web-fun-house/main/wfh/types/plink-global-types/*"
+      ],
+      "@dr/pmo-scheduler": [
+        "../pmo-scheduler"
+      ],
+      "@dr/pmo-scheduler/*": [
+        "../pmo-scheduler/*"
+      ],
+      "@wfh/plink": [
+        "../../../web-fun-house/main"
+      ],
+      "@wfh/plink/*": [
+        "../../../web-fun-house/main/*"
+      ],
+      "*": [
+        "node_modules/@types/*",
+        "node_modules/*",
+        "../../../workspace/ng-space/node_modules/@types/*",
+        "../../../workspace/ng-space/node_modules/*",
+        "../../../workspace/node_modules/@types/*",
+        "../../../workspace/node_modules/*",
+        "../../../web-fun-house/main/node_modules/@types/*",
+        "../../../web-fun-house/main/node_modules/*"
+      ]
+    },
+    "baseUrl": ".",
+    "typeRoots": [
+      "../../../web-fun-house/main/wfh/types",
+      "node_modules/@types",
+      "../../../workspace/ng-space/node_modules/@types",
+      "../../../workspace/node_modules/@types",
+      "../../../web-fun-house/main/node_modules/@types",
+      "../../../web-fun-house/src/runtime/express-app/types"
+    ]
+  }
+}
