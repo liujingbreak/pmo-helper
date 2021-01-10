@@ -2,7 +2,7 @@ import {CronJob} from 'cron';
 import {spawn} from '@wfh/plink/wfh/dist/process-utils';
 import axios from 'axios';
 import chalk from 'chalk';
-import {switchMap, retry, catchError, map} from 'rxjs/operators';
+import {switchMap, retry, catchError, map, takeWhile} from 'rxjs/operators';
 import {of, timer, Observable} from 'rxjs';
 import axiosob from 'axios-observable';
 import {fork} from 'child_process';
@@ -53,8 +53,12 @@ export function turnOn() {
 }
 
 export function checkCreditApplServer() {
-  timer(0, 30 * 60000)
+  const endDate = new Date(2021, 0, 10, 13, 0);
+  timer(15 * 60000, 30 * 60000)
   .pipe(
+    takeWhile(() => {
+      return new Date().getTime() < endDate.getTime();
+    }),
     switchMap(() => axiosob.get<string>('https://credit-service.bkjk.com/byj.githash-webui.txt')
       .pipe(
         catchError(err => {
