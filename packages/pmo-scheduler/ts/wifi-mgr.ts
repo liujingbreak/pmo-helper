@@ -53,7 +53,7 @@ export function turnOn() {
 }
 
 export function checkCreditApplServer() {
-  const endDate = new Date(2021, 0, 10, 13, 0);
+  const endDate = new Date(2021, 0, 12, 18, 0);
   timer(15 * 60000, 30 * 60000)
   .pipe(
     takeWhile(() => {
@@ -77,6 +77,7 @@ export function checkCreditApplServer() {
       if (res == null)
         return of();
 
+      // tslint:disable-next-line: no-console
       console.log(res.data);
       if (res.data.indexOf('user who has no balance applied can not go backward in introdcution page') < 0) {
         return new Observable(sub => {
@@ -95,6 +96,7 @@ export function checkCreditApplServer() {
       }
 
       const now = new Date();
+      // tslint:disable-next-line: no-console
       console.log(chalk.green(now.toLocaleTimeString() + ' ' + now.toLocaleDateString()));
       return of();
     })
