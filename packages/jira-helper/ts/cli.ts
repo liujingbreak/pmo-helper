@@ -1,33 +1,24 @@
-import {CliExtension , GlobalOptions // , initConfigAsync
-} from '@wfh/plink/wfh/dist';
-import {initConfig, initProcess, prepareLazyNodeInjector} from '@wfh/plink/wfh/dist';
+import {CliExtension // , initConfigAsync
+} from '@wfh/plink';
 import * as puppeteer from './puppeteer';
 
-const cliExt: CliExtension = (program, withGlobalOptions) => {
-  const cmdLogin = program.command('jira-login')
+const cliExt: CliExtension = (program) => {
+  program.command('jira-login')
   .description('Login JIRA and save browser cache')
   .action(async (file: string) => {
-    initConfig(cmdSync.opts() as GlobalOptions);
-    initProcess();
-    (require('@wfh/plink/wfh/dist').prepareLazyNodeInjector as typeof prepareLazyNodeInjector)();
     (await import('./jira')).login();
   });
-  withGlobalOptions(cmdLogin);
 
 
   const cmdSync = program.command('jira-sync [yaml-file]')
   .description('Read YAML file and create new tasks in JIRA')
   .option('--headless', 'use headless puppeteer')
   .action(async (file: string) => {
-    initConfig(cmdSync.opts() as GlobalOptions);
-    initProcess();
-    (require('@wfh/plink/wfh/dist').prepareLazyNodeInjector as typeof prepareLazyNodeInjector)();
     if (cmdSync.opts().headless) {
       (require('./puppeteer') as typeof puppeteer).setUseHeadless(true);
     }
     (await import('./jira')).sync({headless: cmdSync.opts().headless}, file);
   });
-  withGlobalOptions(cmdSync);
 
   const cmdList = program.command('jira-list-story [URL]')
   .description('Fetch JIRA stories from remote server list page [URL],' +
@@ -36,15 +27,11 @@ const cliExt: CliExtension = (program, withGlobalOptions) => {
   .option('--include-version <version>', 'Only inlucde issue with specific version')
   .option('--headless', 'use headless puppeteer')
   .action(async (url: string) => {
-    initConfig(cmdList.opts() as GlobalOptions);
-    initProcess();
-    (require('@wfh/plink/wfh/dist').prepareLazyNodeInjector as typeof prepareLazyNodeInjector)();
     if (cmdList.opts().headless) {
       (require('./puppeteer') as typeof puppeteer).setUseHeadless(true);
     }
     (await import('./jira')).listStory(cmdList.opts(), url);
   });
-  withGlobalOptions(cmdList);
 };
 
 export default cliExt;

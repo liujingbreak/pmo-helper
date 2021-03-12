@@ -7,10 +7,9 @@ import pup from 'puppeteer-core';
 import api from '__api';
 import { launch } from './puppeteer';
 import chalk from 'chalk';
-import log4js from 'log4js';
 
 moment.locale('zh-cn');
-const log = log4js.getLogger('jira-helper');
+const log = api.logger;
 
 // const DEFAULT_TASK_MODULE_VALUE = '大C线-研发';
 
