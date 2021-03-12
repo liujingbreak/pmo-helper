@@ -7,10 +7,9 @@
     "auto-deploy": "plink run pmo-scheduler/ts/wifi-mgr.ts#checkCreditApplServer"
   },
   "dependencies": {
-    "@dr/jira-helper": "1.0.1",
-    "@dr/pmo-scheduler": "1.0.0",
+    "@dr/jira-helper": "./tarballs/dr-jira-helper-1.0.1.tgz",
+    "@dr/pmo-scheduler": "./tarballs/dr-pmo-scheduler-1.0.0.tgz",
     "@wfh/plink": "./tarballs/wfh-plink-0.11.1.tgz"
-
   },
   "author": "Liu Jing",
   "license": "MIT"
