@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Scheduled task executor, based on CRON",
   "dr": {
-    "cli": "dist/wifi-mgr.js#createCmd"
+    "cli": "dist/cli/cli.js#default"
+  
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

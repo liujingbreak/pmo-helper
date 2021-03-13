@@ -5,4 +5,3 @@
 export declare function turnOff(): void;
 export declare function turnOn(): void;
 export declare function checkCreditApplServer(): void;
-export declare function createCmd(): void;

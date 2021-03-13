@@ -104,6 +104,3 @@ export function checkCreditApplServer() {
   .subscribe();
 }
 
-export function createCmd() {
-
-}
